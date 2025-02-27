@@ -1,0 +1,40 @@
+name: 'ApiCov'
+description: 'Collect API coverage data'
+inputs:
+  install_path:
+    description: 'The directory where the build is installed'
+    required: true
+  root_path:
+    description: 'The directory where the repo is cloned'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    # - name: Install Path
+    #   run: echo "Install Dir: ${{ inputs.install_path }}"
+    #   shell: bash
+
+    # - name: Root Path
+    #   run: echo "Root Dir: ${{ inputs.root_path }}"
+    #   shell: bash
+    - name: Run APICov
+      run: ${GITHUB_ACTION_PATH}/dist/run.sh "${{ inputs.root_path }}" "${{ inputs.install_path }}"
+      shell: bash
+    # - name: Debug directory
+    #   run: |
+    #     ls -la ${{ inputs.root_path }}
+    #   shell: bash
+    # - name: Debug directory
+    #   run: |
+    #     ls -la ${{ inputs.install_path }}
+    #   shell: bash    
+    - name: "Upload JSON files"
+      uses: actions/upload-artifact@v4
+      with:
+        path: |
+          ${{inputs.root_path}}/apis.json
+          ${{inputs.root_path}}/api_coverage.json
+        if-no-files-found: error
+
+

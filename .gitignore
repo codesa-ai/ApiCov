@@ -1,0 +1,7 @@
+*.zip
+*/__pycache__/*
+*/build/*
+*.spec
+*venv*
+dev_files/*
+artifact/*
