@@ -1,17 +1,15 @@
 import re
 import os
 import sys
-import logging
 import json
 import subprocess
 
 from modules.logging_config import logging 
 
 class ExportFetcher(object):
-    def __init__(self, project_dir):
+    def __init__(self):
         self.symbols = []
         self.apis = []
-        self._root_dir = os.path.abspath(project_dir)
         self.headers = []
 
     def grep_for_symbol(self, symbol, install_dir):
@@ -48,25 +46,6 @@ class ExportFetcher(object):
                 continue
             if api not in self.function_names:
                 self.symbols.append(api.strip())
-
-    def _walk_dir(self, dir, compile_commands):
-        includes="-I"
-        includes += " -I".join(IMPORTS)
-        for root, dirs, files in os.walk(dir):
-            for file in files:
-                if file.endswith(".h") or file.endswith(".hpp") or file.endswith(".hxx"):
-                    path = os.path.join(root, file)
-                    command = [LIBTOOL, "-p", compile_commands, path, "--", includes]
-                    res = run_command(command, os.getcwd(), shell=False)
-                    if not res:
-                        logging.error("Failed to process: %s", path)
-                        with open(path, 'r') as fh:
-                            self.find_functions_in_file(fh.read())
-                        continue
-                    self._add_functions(res.stdout)
-
-    def crawl_dir(self, dir, compile_commands):
-        self._walk_dir(dir, compile_commands)
 
     def _add_symbol(self, symbol):
         if symbol not in self.symbols:

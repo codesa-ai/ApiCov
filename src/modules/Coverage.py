@@ -1,10 +1,5 @@
 import os 
 import subprocess
-import sys
-import re
-import json
-import logging
-from collections import defaultdict
 from modules.logging_config import logging 
 
 
@@ -104,10 +99,10 @@ class LibCoverage():
             api = api.replace("_REAL","")
         if api in self.api_coverage:
             new_val = float_cov
-            if new_val > self.api_coverage[api][0]:
-                self.api_coverage[api] = (new_val, total_size)
+            if new_val > self.api_coverage[api]:
+                self.api_coverage[api] = new_val
         else:
-            self.api_coverage[api] = (float_cov, total_size)
+            self.api_coverage[api] = float_cov
         
         if api in self.api_sizes:
             if self.api_sizes[api] < total_size:
@@ -133,14 +128,15 @@ class LibCoverage():
                     logging.debug("%s", results.stdout)
                     float_cov = 100.00
 
+                line_cov = int((float_cov * size)/100)
                 if api.endswith("_REAL"):
                     api = api.replace("_REAL","")
                 if api in self.api_coverage:
-                    new_val = float_cov
-                    if new_val > self.api_coverage[api][0]:
-                        self.api_coverage[api] = (new_val, size)
+                    new_val = line_cov
+                    if new_val > self.api_coverage[api]:
+                        self.api_coverage[api] = new_val
                 else:
-                    self.api_coverage[api] = (float_cov, size)
+                    self.api_coverage[api] = line_cov
                 
                 if api in self.api_sizes:
                     if self.api_sizes[api] < size:
@@ -209,34 +205,34 @@ def merge_callgraphs(callgraphs):
                 merged[api] = graph[api]
     return merged
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    lib_path = sys.argv[1]
-    functions_json = sys.argv[2]
-    path = "/tmp/data/libraries/xiph@@vorbis"
-    callgraphs = []
-    shared_libs = ["libvorbis.so","libvorbisenc.so","libvorbisfile.so "]
-    for shared_lib in shared_libs:
-        shared_lib = shared_lib.strip()
-        callgraph_file = os.path.join(path, shared_lib+"_callgraph.txt")
-        if os.path.exists(callgraph_file):
-            logging.debug("Processing callgraph file: %s", callgraph_file)
-            g = CallGraphParser(callgraph_file)
-            callgraphs.append(g.parse_callgraph())
+#     lib_path = sys.argv[1]
+#     functions_json = sys.argv[2]
+#     path = "/tmp/data/libraries/xiph@@vorbis"
+#     callgraphs = []
+#     shared_libs = ["libvorbis.so","libvorbisenc.so","libvorbisfile.so "]
+#     for shared_lib in shared_libs:
+#         shared_lib = shared_lib.strip()
+#         callgraph_file = os.path.join(path, shared_lib+"_callgraph.txt")
+#         if os.path.exists(callgraph_file):
+#             logging.debug("Processing callgraph file: %s", callgraph_file)
+#             g = CallGraphParser(callgraph_file)
+#             callgraphs.append(g.parse_callgraph())
     
-    callgraph = merge_callgraphs(callgraphs)
+#     callgraph = merge_callgraphs(callgraphs)
 
-    # callgraph_file = sys.argv[3]
-    with open(functions_json, 'r') as fh:
-        data = json.load(fh)
-    exports = list(data.values())
-    # graph = CallGraphParser(callgraph_file)
-    # callgraph = graph.parse_callgraph()
+#     # callgraph_file = sys.argv[3]
+#     with open(functions_json, 'r') as fh:
+#         data = json.load(fh)
+#     exports = list(data.values())
+#     # graph = CallGraphParser(callgraph_file)
+#     # callgraph = graph.parse_callgraph()
 
-    c = LibCoverage(exports[0], lib_path)
-    c.run_gcov_on_gcno_files()
-    c.populate_full_api_cov(callgraph)
-    with open('api_coverage.json', 'w') as fh:
-        json.dump(c.api_coverage, fh)
-    with open('api_sizes.json', 'w') as fh:
-        json.dump(c.api_sizes, fh)
+#     c = LibCoverage(exports[0], lib_path)
+#     c.run_gcov_on_gcno_files()
+#     c.populate_full_api_cov(callgraph)
+#     with open('api_coverage.json', 'w') as fh:
+#         json.dump(c.api_coverage, fh)
+#     with open('api_sizes.json', 'w') as fh:
+#         json.dump(c.api_sizes, fh)
