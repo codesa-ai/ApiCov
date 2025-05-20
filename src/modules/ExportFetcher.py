@@ -8,10 +8,9 @@ import subprocess
 from modules.logging_config import logging 
 
 class ExportFetcher(object):
-    def __init__(self, project_dir):
+    def __init__(self):
         self.symbols = []
         self.apis = []
-        self._root_dir = os.path.abspath(project_dir)
         self.headers = []
 
     def grep_for_symbol(self, symbol, install_dir):

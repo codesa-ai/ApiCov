@@ -104,10 +104,10 @@ class LibCoverage():
             api = api.replace("_REAL","")
         if api in self.api_coverage:
             new_val = float_cov
-            if new_val > self.api_coverage[api][0]:
-                self.api_coverage[api] = (new_val, total_size)
+            if new_val > self.api_coverage[api]:
+                self.api_coverage[api] = new_val
         else:
-            self.api_coverage[api] = (float_cov, total_size)
+            self.api_coverage[api] = float_cov
         
         if api in self.api_sizes:
             if self.api_sizes[api] < total_size:
@@ -133,14 +133,15 @@ class LibCoverage():
                     logging.debug("%s", results.stdout)
                     float_cov = 100.00
 
+                line_cov = int((float_cov * size)/100)
                 if api.endswith("_REAL"):
                     api = api.replace("_REAL","")
                 if api in self.api_coverage:
-                    new_val = float_cov
-                    if new_val > self.api_coverage[api][0]:
-                        self.api_coverage[api] = (new_val, size)
+                    new_val = line_cov
+                    if new_val > self.api_coverage[api]:
+                        self.api_coverage[api] = new_val
                 else:
-                    self.api_coverage[api] = (float_cov, size)
+                    self.api_coverage[api] = line_cov
                 
                 if api in self.api_sizes:
                     if self.api_sizes[api] < size:

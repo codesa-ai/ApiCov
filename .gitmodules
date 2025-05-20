@@ -1,0 +1,3 @@
+[submodule "src/tests/vorbis"]
+	path = src/tests/vorbis
+	url = https://github.com/xiph/vorbis.git
