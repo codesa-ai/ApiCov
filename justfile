@@ -8,7 +8,6 @@ shell:
 
 # Prepare the target for testing (vorbis)
 test-prep:
-  # Ensure we're in the root directory
   cd "$(dirname "$(readlink -f "$0")")"
   git submodule update --init --recursive
   chmod +x ./src/tests/prep_target.sh
@@ -21,6 +20,5 @@ test:
 
 # Build binary
 build:
-  # Activate virtual environment and build binary
   . .venv/bin/activate && pyinstaller --onefile src/apicov.py
 

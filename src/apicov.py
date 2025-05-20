@@ -9,18 +9,18 @@ from modules.logging_config import logging
 def main():
     parser = argparse.ArgumentParser(description="Code SA API Coverage Tool")
     parser.add_argument('project_dir', type=str, help='Path to the root directory')
-    parser.add_argument('install_dir', type=str, help='Path to where the built library is installed')
+    parser.add_argument('install_dir', type=str, help='Path to where the exported header files are installed')
 
     args = parser.parse_args()
 
 
     logging.debug("Looking for shared libraries in the project directory")
-    shared_libs = find_shared_libraries(args.install_dir)
+    shared_libs = find_shared_libraries(args.project_dir)
 
-    logging.debug("Shared libraries found: %s", shared_libs)
+    logging.info("Shared libraries found: %s", shared_libs)
 
     logging.debug("Identifying exports from shared libraries")
-    lib_exports = ExportFetcher(args.project_dir)
+    lib_exports = ExportFetcher()
     for lib in shared_libs:
         lib_exports.get_exports_from_lib(lib)
 
