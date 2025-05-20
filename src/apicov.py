@@ -47,8 +47,8 @@ def main():
     for api in lib_exports.apis:
         if api in entry_cov.api_sizes:
             json_data[api] = {}
-            json_data[api]["Size"] = entry_cov.api_sizes[api]
-            json_data[api]["Cov"] = entry_cov.api_coverage[api]
+            json_data[api]["full_size"] = entry_cov.api_sizes[api]
+            json_data[api]["covered_lines"] = entry_cov.api_coverage[api]
         else:
             logging.error("Failed to find size for API: %s", api)
             failed_apis.append(api)
