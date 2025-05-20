@@ -15,6 +15,6 @@ test-prep:
   ./src/tests/prep_target.sh
   cd ../../..
 
-
-  
-
+# Run the tests (vorbis)
+test:
+  pytest src/tests/tests.py

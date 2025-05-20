@@ -6,4 +6,5 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "just>=0.8.162",
+    "pytest>=8.3.5",
 ]
