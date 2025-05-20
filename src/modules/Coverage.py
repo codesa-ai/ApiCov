@@ -1,10 +1,8 @@
 import os 
 import subprocess
 import sys
-import re
 import json
 import logging
-from collections import defaultdict
 from modules.logging_config import logging 
 
 

@@ -1,7 +1,5 @@
 import re
-import logging
 from collections import defaultdict
-from modules.logging_config import logging 
 
 
 class CallGraphParser():
