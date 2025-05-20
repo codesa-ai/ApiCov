@@ -8,6 +8,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "just" },
+    { name = "justfile" },
     { name = "pytest" },
     { name = "ruff" },
 ]
@@ -15,6 +16,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "just", specifier = ">=0.8.162" },
+    { name = "justfile", specifier = ">=0.0.1a0" },
     { name = "pytest", specifier = ">=8.3.5" },
     { name = "ruff", specifier = ">=0.11.10" },
 ]
@@ -128,6 +130,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/4c/8e/692f044619e041b5e6c53af93a43392ce5c9bd8ae17e1d6cca6afa3e4ff0/just-0.8.162.tar.gz", hash = "sha256:9804e695b3a7d5284314fb19cc9c1216a52da01dd0aa802c264d95984ca84485", size = 30741, upload-time = "2024-05-18T23:24:46.797Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0c/33/284dcbbd2970dd2d2e983366820245e6bcca8fd3e03b78f138e210cede2e/just-0.8.162-py2.py3-none-any.whl", hash = "sha256:e96951a90601f15e105a45348ecf472e2618ee38e16e1fa6f149017b2a32f773", size = 30738, upload-time = "2024-05-18T23:24:45.138Z" },
+]
+
+[[package]]
+name = "justfile"
+version = "0.0.1a0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/9f/22/db3cd9161dd2a773f8fc5c975410c7dd5531e68788574a056d852de28104/justfile-0.0.1a0.tar.gz", hash = "sha256:0f12000a1da84585402daff428fb842854d81574b923cb130af875f46ce43b4a", size = 3330, upload-time = "2020-06-30T01:19:49.123Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fe/2c/2b851b151f210b894c9a32f237e8badb58d70ac895294b4a1ddc78c517db/justfile-0.0.1a0-py2.py3-none-any.whl", hash = "sha256:75ba63146bf24029696e31ee04d58dbbacf5443b27e895c69973e9bfd1f17a92", size = 3712, upload-time = "2020-06-30T01:19:45.895Z" },
 ]
 
 [[package]]

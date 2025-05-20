@@ -47,25 +47,6 @@ class ExportFetcher(object):
             if api not in self.function_names:
                 self.symbols.append(api.strip())
 
-    def _walk_dir(self, dir, compile_commands):
-        includes="-I"
-        includes += " -I".join(IMPORTS)
-        for root, dirs, files in os.walk(dir):
-            for file in files:
-                if file.endswith(".h") or file.endswith(".hpp") or file.endswith(".hxx"):
-                    path = os.path.join(root, file)
-                    command = [LIBTOOL, "-p", compile_commands, path, "--", includes]
-                    res = run_command(command, os.getcwd(), shell=False)
-                    if not res:
-                        logging.error("Failed to process: %s", path)
-                        with open(path, 'r') as fh:
-                            self.find_functions_in_file(fh.read())
-                        continue
-                    self._add_functions(res.stdout)
-
-    def crawl_dir(self, dir, compile_commands):
-        self._walk_dir(dir, compile_commands)
-
     def _add_symbol(self, symbol):
         if symbol not in self.symbols:
             self.symbols.append(symbol)
