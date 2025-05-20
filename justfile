@@ -18,3 +18,9 @@ test-prep:
 # Run the tests (vorbis)
 test:
   pytest src/tests/tests.py
+
+# Build binary
+build:
+  # Activate virtual environment and build binary
+  . .venv/bin/activate && pyinstaller --onefile src/apicov.py
+
