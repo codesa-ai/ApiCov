@@ -34,6 +34,7 @@ def test_export_fetcher():
     assert len(lib_exports.apis) < len(lib_exports.symbols), "Filteration failed"
 
 def test_lib_coverage():
+    logging.info("Testing LibCoverage in directory: %s", PROJECT_DIR)
     lib_coverage = LibCoverage(APIS, PROJECT_DIR)
     lib_coverage.run_gcov_on_gcno_files()
     lib_coverage.populate_entry_api_cov()
