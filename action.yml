@@ -1,5 +1,10 @@
 name: 'ApiCov'
-description: 'Collect API coverage data'
+description: 'Collect API coverage data from C/C++ projects'
+author: 'Code SA'
+branding:
+  icon: 'code'
+  color: 'blue'
+
 inputs:
   install_path:
     description: 'The directory where the build is installed'
@@ -32,6 +37,7 @@ runs:
     - name: "Upload JSON files"
       uses: actions/upload-artifact@v4
       with:
+        name: api-coverage
         path: |
           ${{inputs.root_path}}/apis.json
           ${{inputs.root_path}}/api_coverage.json

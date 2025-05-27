@@ -1,4 +1,4 @@
-# ApiCov
+# ApiCov GitHub Action
 
 This is Github action that is responsible for parsing all the coverage files of a software library and uploading them.
 The action will identify all exports from shared libraries built as part of the build process in a CI/CD pipeline. 
@@ -16,21 +16,39 @@ The action requires two inputs
 * The directory where the repository is cloned on the runner. 
 * The directory where you install the library on the runner during your workflow. 
 
-To add this action to a workflow you need to include it towards the end of your workflow file to ensure all tests have run. An example is shown below
-```
-- name: 'ApiCov'
-uses: pengwinsurf/ApiCov@v0.0.10-pre
-with:
-    install_path: ${{ steps.install.directory }} # Install path as part of your workflow.
-    root_path: ${{ github.workspace }}
-```
+## Inputs
 
-### Outputs
-The action produces two files
-* apis.json 
-* api_coverage.json
+| Input | Description | Required |
+|-------|-------------|----------|
+| `install_path` | The directory where the build is installed | Yes |
+| `root_path` | The directory where the repo is cloned | Yes |
 
-The first file lists all the APIs identified by ApiCov and the second file lists the coverage percentage along with the size in number of lines for each API. 
+## Outputs
+
+The action generates two JSON files:
+- `apis.json`: List of all APIs found in the project
+- `api_coverage.json`: Coverage data for each API
+
+These files are uploaded as artifacts and can be downloaded in subsequent steps.
+
+## Private Repository Setup
+
+To use this action in a private repository:
+
+1. Create a new repository for the action
+2. Push this code to that repository
+3. Create a release with a tag (e.g., v1.0.0)
+4. Reference the action in your workflow using:
+   ```yaml
+    - name: 'ApiCov'
+    uses: your-username/apicov@v0.0.1
+    with:
+        install_path: ${{ steps.install.directory }} # Install path as part of your workflow.
+        root_path: ${{ github.workspace }}
+    ```
+
+## License
+MIT
 
 Currently the action just uploads the two files as artifacts. Upload to a server for visualization is WIP. 
 
