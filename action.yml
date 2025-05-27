@@ -16,15 +16,18 @@ inputs:
 runs:
   using: "composite"
   steps:
-    # - name: Install Path
-    #   run: echo "Install Dir: ${{ inputs.install_path }}"
-    #   shell: bash
+    - name: Detect Ubuntu version
+      id: detect_ubuntu
+      run: |
+        if [[ "$(lsb_release -rs)" == "22.04" ]]; then
+          echo "version=ubuntu-22.04" >> $GITHUB_OUTPUT
+        else
+          echo "version=ubuntu-24.04" >> $GITHUB_OUTPUT
+        fi
+      shell: bash
 
-    # - name: Root Path
-    #   run: echo "Root Dir: ${{ inputs.root_path }}"
-    #   shell: bash
     - name: Run APICov
-      run: ${GITHUB_ACTION_PATH}/dist/run.sh "${{ inputs.root_path }}" "${{ inputs.install_path }}"
+      run: ${GITHUB_ACTION_PATH}/dist-${{ steps.detect_ubuntu.outputs.version }}/run.sh "${{ inputs.root_path }}" "${{ inputs.install_path }}"
       shell: bash
     # - name: Debug directory
     #   run: |

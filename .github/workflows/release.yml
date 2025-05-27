@@ -11,7 +11,16 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-latest]
+        include:
+          - os: ubuntu-22.04
+            name: ubuntu-22.04
+          - os: ubuntu-latest
+            name: ubuntu-24.04
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -62,14 +71,69 @@ jobs:
           echo 'fi' >> dist/run.sh
           chmod +x dist/run.sh
 
+      - name: Create version-specific action file
+        run: |
+          cat > dist/action-${{ matrix.name }}.yml << 'EOF'
+          name: 'ApiCov'
+          description: 'Collect API coverage data from C/C++ projects'
+          author: 'Code SA'
+          branding:
+            icon: 'code'
+            color: 'blue'
+
+          inputs:
+            install_path:
+              description: 'The directory where the build is installed'
+              required: true
+            root_path:
+              description: 'The directory where the repo is cloned'
+              required: true
+
+          runs:
+            using: "composite"
+            steps:
+              - name: Run APICov
+                run: ${GITHUB_ACTION_PATH}/dist-${{ matrix.name }}/run.sh "${{ inputs.root_path }}" "${{ inputs.install_path }}"
+                shell: bash
+              - name: "Upload JSON files"
+                uses: actions/upload-artifact@v4
+                with:
+                  name: api-coverage
+                  path: |
+                    ${{inputs.root_path}}/apis.json
+                    ${{inputs.root_path}}/api_coverage.json
+                  if-no-files-found: error
+          EOF
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: apicov-${{ matrix.name }}
+          path: |
+            dist/apicov
+            dist/run.sh
+            dist/action-${{ matrix.name }}.yml
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            dist/apicov
-            dist/run.sh
-            action.yml
+            artifacts/apicov-ubuntu-22.04/apicov
+            artifacts/apicov-ubuntu-22.04/run.sh
+            artifacts/apicov-ubuntu-22.04/action-ubuntu-22.04.yml
+            artifacts/apicov-ubuntu-24.04/apicov
+            artifacts/apicov-ubuntu-24.04/run.sh
+            artifacts/apicov-ubuntu-24.04/action-ubuntu-24.04.yml
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
