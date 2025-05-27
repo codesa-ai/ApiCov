@@ -44,6 +44,12 @@ jobs:
       - name: Build binary
         run: |
           source .venv/bin/activate
+          # For Ubuntu 24.04, we need to build with GLIBC 2.35 compatibility
+          if [[ "${{ matrix.name }}" == "ubuntu-24.04" ]]; then
+            export CFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0"
+            export CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0"
+            export LDFLAGS="-Wl,--wrap=memcpy"
+          fi
           pyinstaller --onefile \
             --clean \
             --strip \
