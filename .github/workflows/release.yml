@@ -123,17 +123,27 @@ jobs:
         with:
           path: artifacts
 
+      - name: Prepare release files
+        run: |
+          mkdir -p release
+          for version in ubuntu-22.04 ubuntu-24.04; do
+            mkdir -p release/$version
+            cp artifacts/apicov-$version/apicov release/$version/
+            cp artifacts/apicov-$version/run.sh release/$version/
+            cp artifacts/apicov-$version/action-$version.yml release/$version/action.yml
+          done
+
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            artifacts/apicov-ubuntu-22.04/apicov
-            artifacts/apicov-ubuntu-22.04/run.sh
-            artifacts/apicov-ubuntu-22.04/action-ubuntu-22.04.yml
-            artifacts/apicov-ubuntu-24.04/apicov
-            artifacts/apicov-ubuntu-24.04/run.sh
-            artifacts/apicov-ubuntu-24.04/action-ubuntu-24.04.yml
+            release/ubuntu-22.04/apicov
+            release/ubuntu-22.04/run.sh
+            release/ubuntu-22.04/action.yml
+            release/ubuntu-24.04/apicov
+            release/ubuntu-24.04/run.sh
+            release/ubuntu-24.04/action.yml
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
