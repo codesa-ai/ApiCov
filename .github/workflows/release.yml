@@ -16,7 +16,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.10'
 
       - name: Install uv
         run: |
@@ -32,7 +32,13 @@ jobs:
       - name: Build binary
         run: |
           source .venv/bin/activate
-          pyinstaller --onefile src/apicov.py
+          pyinstaller --onefile \
+            --clean \
+            --strip \
+            --noconfirm \
+            --add-binary "/usr/lib/x86_64-linux-gnu/libm.so.6:." \
+            --hidden-import=gcov \
+            src/apicov.py
 
       - name: Create run script
         run: |
