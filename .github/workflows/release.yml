@@ -157,7 +157,7 @@ jobs:
             release/ubuntu-22.04/dist/apicov
             release/ubuntu-22.04/dist/run.sh
             release/ubuntu-24.04/dist/apicov
-            release/ubuntu-24.04/dist/run.sh
+            # release/ubuntu-24.04/dist/run.sh
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
