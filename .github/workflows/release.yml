@@ -93,7 +93,7 @@ jobs:
             using: "composite"
             steps:
               - name: Run APICov
-                run: ${GITHUB_ACTION_PATH}/dist-${{ matrix.name }}/run.sh "${{ inputs.root_path }}" "${{ inputs.install_path }}"
+                run: ${GITHUB_ACTION_PATH}/dist/run.sh "${{ inputs.root_path }}" "${{ inputs.install_path }}"
                 shell: bash
               - name: "Upload JSON files"
                 uses: actions/upload-artifact@v4
@@ -127,9 +127,9 @@ jobs:
         run: |
           mkdir -p release
           for version in ubuntu-22.04 ubuntu-24.04; do
-            mkdir -p release/$version
-            cp artifacts/apicov-$version/apicov release/$version/
-            cp artifacts/apicov-$version/run.sh release/$version/
+            mkdir -p release/$version/dist
+            cp artifacts/apicov-$version/apicov release/$version/dist/
+            cp artifacts/apicov-$version/run.sh release/$version/dist/
             cp artifacts/apicov-$version/action-$version.yml release/$version/action.yml
           done
 
@@ -138,11 +138,11 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            release/ubuntu-22.04/apicov
-            release/ubuntu-22.04/run.sh
+            release/ubuntu-22.04/dist/apicov
+            release/ubuntu-22.04/dist/run.sh
             release/ubuntu-22.04/action.yml
-            release/ubuntu-24.04/apicov
-            release/ubuntu-24.04/run.sh
+            release/ubuntu-24.04/dist/apicov
+            release/ubuntu-24.04/dist/run.sh
             release/ubuntu-24.04/action.yml
           generate_release_notes: true
         env:

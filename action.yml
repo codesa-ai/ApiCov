@@ -27,7 +27,7 @@ runs:
       shell: bash
 
     - name: Run APICov
-      run: ${GITHUB_ACTION_PATH}/dist-${{ steps.detect_ubuntu.outputs.version }}/run.sh "${{ inputs.root_path }}" "${{ inputs.install_path }}"
+      run: ${GITHUB_ACTION_PATH}/dist/run.sh "${{ inputs.root_path }}" "${{ inputs.install_path }}"
       shell: bash
     # - name: Debug directory
     #   run: |
