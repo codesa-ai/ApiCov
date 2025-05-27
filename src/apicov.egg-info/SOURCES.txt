@@ -1,0 +1,16 @@
+README.md
+pyproject.toml
+src/__init__.py
+src/apicov.py
+src/apicov.egg-info/PKG-INFO
+src/apicov.egg-info/SOURCES.txt
+src/apicov.egg-info/dependency_links.txt
+src/apicov.egg-info/requires.txt
+src/apicov.egg-info/top_level.txt
+src/modules/Coverage.py
+src/modules/ExportFetcher.py
+src/modules/Utils.py
+src/modules/__init__.py
+src/modules/logging_config.py
+src/tests/__init__.py
+src/tests/tests.py

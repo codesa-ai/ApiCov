@@ -1,0 +1,65 @@
+name: Release Action
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Create virtual environment
+        run: |
+          uv venv .venv
+          source .venv/bin/activate
+          uv pip install -e .
+
+      - name: Build binary
+        run: |
+          source .venv/bin/activate
+          pyinstaller --onefile src/apicov.py
+
+      - name: Create run script
+        run: |
+          echo '#!/bin/bash' > dist/run.sh
+          echo '' >> dist/run.sh
+          echo '# Get the directory of the current script' >> dist/run.sh
+          echo 'SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"' >> dist/run.sh
+          echo '' >> dist/run.sh
+          echo '# Check if the apicov binary exists in the same directory' >> dist/run.sh
+          echo 'if [[ -f "$SCRIPT_DIR/apicov" ]]; then' >> dist/run.sh
+          echo '  echo "Executing: $SCRIPT_DIR/apicov $1 $2"' >> dist/run.sh
+          echo '  # Run the apicov binary with the provided arguments' >> dist/run.sh
+          echo '  "$SCRIPT_DIR/apicov" "$1" "$2"' >> dist/run.sh
+          echo 'else' >> dist/run.sh
+          echo '  echo "Error: apicov binary not found in $SCRIPT_DIR"' >> dist/run.sh
+          echo '  exit 1' >> dist/run.sh
+          echo 'fi' >> dist/run.sh
+          chmod +x dist/run.sh
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/apicov
+            dist/run.sh
+            action.yml
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
