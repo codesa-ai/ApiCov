@@ -90,15 +90,10 @@ jobs:
 
       - name: Prepare release files
         run: |
+          # Create release directory
           mkdir -p release
-          for version in ubuntu-22.04 ubuntu-24.04; do
-            mkdir -p release/$version/dist
-            cp artifacts/apicov-$version/apicov release/$version/dist/
-            cp artifacts/apicov-$version/run.sh release/$version/dist/
-          done
-
-      - name: Create action.yml
-        run: |
+          
+          # Create action.yml
           cat > release/action.yml << 'EOF'
           name: 'ApiCov'
           description: 'Collect API coverage data from C/C++ projects'
@@ -142,16 +137,27 @@ jobs:
                   if-no-files-found: error
           EOF
 
+          # Copy binaries and scripts
+          for version in ubuntu-22.04 ubuntu-24.04; do
+            mkdir -p "release/$version/dist"
+            cp "artifacts/apicov-$version/apicov" "release/$version/dist/"
+            cp "artifacts/apicov-$version/run.sh" "release/$version/dist/"
+          done
+
+      - name: List release files
+        run: |
+          find release -type f
+
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
           files: |
+            release/action.yml
             release/ubuntu-22.04/dist/apicov
             release/ubuntu-22.04/dist/run.sh
             release/ubuntu-24.04/dist/apicov
             release/ubuntu-24.04/dist/run.sh
-            release/action.yml
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
