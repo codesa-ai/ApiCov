@@ -71,9 +71,35 @@ jobs:
           echo 'fi' >> dist/run.sh
           chmod +x dist/run.sh
 
-      - name: Create version-specific action file
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: apicov-${{ matrix.name }}
+          path: |
+            dist/apicov
+            dist/run.sh
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release files
         run: |
-          cat > dist/action-${{ matrix.name }}.yml << 'EOF'
+          mkdir -p release
+          for version in ubuntu-22.04 ubuntu-24.04; do
+            mkdir -p release/$version/dist
+            cp artifacts/apicov-$version/apicov release/$version/dist/
+            cp artifacts/apicov-$version/run.sh release/$version/dist/
+          done
+
+      - name: Create action.yml
+        run: |
+          cat > release/action.yml << 'EOF'
           name: 'ApiCov'
           description: 'Collect API coverage data from C/C++ projects'
           author: 'Code SA'
@@ -92,9 +118,20 @@ jobs:
           runs:
             using: "composite"
             steps:
-              - name: Run APICov
-                run: ${GITHUB_ACTION_PATH}/dist/run.sh "${{ inputs.root_path }}" "${{ inputs.install_path }}"
+              - name: Detect Ubuntu version
+                id: detect_ubuntu
+                run: |
+                  if [[ "$(lsb_release -rs)" == "22.04" ]]; then
+                    echo "version=ubuntu-22.04" >> $GITHUB_OUTPUT
+                  else
+                    echo "version=ubuntu-24.04" >> $GITHUB_OUTPUT
+                  fi
                 shell: bash
+
+              - name: Run APICov
+                run: ${GITHUB_ACTION_PATH}/${{ steps.detect_ubuntu.outputs.version }}/dist/run.sh "${{ inputs.root_path }}" "${{ inputs.install_path }}"
+                shell: bash
+
               - name: "Upload JSON files"
                 uses: actions/upload-artifact@v4
                 with:
@@ -105,34 +142,6 @@ jobs:
                   if-no-files-found: error
           EOF
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: apicov-${{ matrix.name }}
-          path: |
-            dist/apicov
-            dist/run.sh
-            dist/action-${{ matrix.name }}.yml
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Prepare release files
-        run: |
-          mkdir -p release
-          for version in ubuntu-22.04 ubuntu-24.04; do
-            mkdir -p release/$version/dist
-            cp artifacts/apicov-$version/apicov release/$version/dist/
-            cp artifacts/apicov-$version/run.sh release/$version/dist/
-            cp artifacts/apicov-$version/action-$version.yml release/$version/action.yml
-          done
-
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v1
@@ -140,10 +149,9 @@ jobs:
           files: |
             release/ubuntu-22.04/dist/apicov
             release/ubuntu-22.04/dist/run.sh
-            release/ubuntu-22.04/action.yml
             release/ubuntu-24.04/dist/apicov
             release/ubuntu-24.04/dist/run.sh
-            release/ubuntu-24.04/action.yml
+            release/action.yml
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
