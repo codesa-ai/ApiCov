@@ -146,37 +146,39 @@ jobs:
                   if-no-files-found: error
           EOF
 
-          # Copy binaries and scripts
+          # Copy binaries and scripts with version-specific names
           for version in ubuntu-22.04 ubuntu-24.04; do
             echo "Processing $version..."
             mkdir -p "release/$version/dist"
             if [ -f "artifacts/apicov-$version/apicov" ]; then
-              cp "artifacts/apicov-$version/apicov" "release/$version/dist/"
+              cp "artifacts/apicov-$version/apicov" "release/$version/dist/apicov-$version"
             else
               echo "Warning: apicov not found for $version"
             fi
             if [ -f "artifacts/apicov-$version/run.sh" ]; then
-              cp "artifacts/apicov-$version/run.sh" "release/$version/dist/"
+              cp "artifacts/apicov-$version/run.sh" "release/$version/dist/run-$version.sh"
             else
               echo "Warning: run.sh not found for $version"
             fi
           done
 
-      - name: List release files
+      - name: List release files and save paths
+        id: list_files
         run: |
           echo "Listing files in release directory:"
-          find release -type f
+          find "$GITHUB_WORKSPACE/release" -type f > file_paths.txt
+          cat file_paths.txt
+          echo "files<<EOF" >> $GITHUB_OUTPUT
+          while IFS= read -r file; do
+            echo "$file" >> $GITHUB_OUTPUT
+          done < file_paths.txt
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            release/action.yml
-            release/ubuntu-22.04/dist/apicov
-            release/ubuntu-22.04/dist/run.sh
-            release/ubuntu-24.04/dist/apicov
-            release/ubuntu-24.04/dist/run.sh
+          files: ${{ steps.list_files.outputs.files }}
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
