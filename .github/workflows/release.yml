@@ -11,14 +11,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-22.04
-            name: ubuntu-22.04
-          - os: ubuntu-latest
-            name: ubuntu-24.04
+    runs-on: ubuntu-22.04  # Always build on Ubuntu 22.04 for maximum compatibility
 
     steps:
       - uses: actions/checkout@v4
@@ -44,12 +37,6 @@ jobs:
       - name: Build binary
         run: |
           source .venv/bin/activate
-          # For Ubuntu 24.04, we need to build with GLIBC 2.35 compatibility
-          if [[ "${{ matrix.name }}" == "ubuntu-24.04" ]]; then
-            export CFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0"
-            export CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0"
-            export LDFLAGS="-Wl,--wrap=memcpy"
-          fi
           pyinstaller --onefile \
             --clean \
             --strip \
@@ -84,7 +71,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: apicov-${{ matrix.name }}
+          name: apicov-binary
           path: |
             dist/apicov
             dist/run.sh
@@ -128,18 +115,8 @@ jobs:
           runs:
             using: "composite"
             steps:
-              - name: Detect Ubuntu version
-                id: detect_ubuntu
-                run: |
-                  if [[ "$(lsb_release -rs)" == "22.04" ]]; then
-                    echo "version=ubuntu-22.04" >> $GITHUB_OUTPUT
-                  else
-                    echo "version=ubuntu-24.04" >> $GITHUB_OUTPUT
-                  fi
-                shell: bash
-
               - name: Run APICov
-                run: ${GITHUB_ACTION_PATH}/${{ steps.detect_ubuntu.outputs.version }}/dist/run.sh "${{ inputs.root_path }}" "${{ inputs.install_path }}"
+                run: ${GITHUB_ACTION_PATH}/dist/run.sh "${{ inputs.root_path }}" "${{ inputs.install_path }}"
                 shell: bash
 
               - name: "Upload JSON files"
@@ -152,21 +129,10 @@ jobs:
                   if-no-files-found: error
           EOF
 
-          # Copy binaries and scripts with version-specific names
-          for version in ubuntu-22.04 ubuntu-24.04; do
-            echo "Processing $version..."
-            mkdir -p "release/$version/dist"
-            if [ -f "artifacts/apicov-$version/apicov" ]; then
-              cp "artifacts/apicov-$version/apicov" "release/$version/dist/apicov-$version"
-            else
-              echo "Warning: apicov not found for $version"
-            fi
-            if [ -f "artifacts/apicov-$version/run.sh" ]; then
-              cp "artifacts/apicov-$version/run.sh" "release/$version/dist/run-$version.sh"
-            else
-              echo "Warning: run.sh not found for $version"
-            fi
-          done
+          # Copy binary and script to release directory
+          mkdir -p "release/dist"
+          cp "artifacts/apicov-binary/apicov" "release/dist/apicov"
+          cp "artifacts/apicov-binary/run.sh" "release/dist/run.sh"
 
       - name: List release files and save paths
         id: list_files
