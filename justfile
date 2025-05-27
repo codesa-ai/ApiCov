@@ -6,6 +6,11 @@ default:
 shell:
   @echo "run this:\nsource .venv/bin/activate"
 
+# Create virtual environment with Python 3.10
+venv:
+  python3.10 -m venv .venv
+  . .venv/bin/activate && pip install -e .
+
 # Prepare the target for testing (vorbis)
 test-prep:
   cd "$(dirname "$(readlink -f "$0")")"
@@ -20,5 +25,5 @@ test:
 
 # Build binary
 build:
-  . .venv/bin/activate && pyinstaller --onefile src/apicov.py
+  . .venv/bin/activate && .venv/bin/python -m PyInstaller --onefile --python-option="--enable-shared" src/apicov.py
 

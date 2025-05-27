@@ -5,6 +5,10 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write  # Required for creating releases
+  packages: write  # Required for publishing packages
+
 jobs:
   build:
     runs-on: ubuntu-latest
