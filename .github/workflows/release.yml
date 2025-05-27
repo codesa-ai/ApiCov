@@ -70,6 +70,11 @@ jobs:
           echo 'fi' >> dist/run.sh
           chmod +x dist/run.sh
 
+      - name: List build files
+        run: |
+          echo "Listing files in dist directory:"
+          ls -la dist/
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -86,6 +91,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
+
+      - name: List downloaded artifacts
+        run: |
+          echo "Listing downloaded artifacts:"
+          find artifacts -type f
 
       - name: Prepare release files
         run: |
@@ -138,13 +148,23 @@ jobs:
 
           # Copy binaries and scripts
           for version in ubuntu-22.04 ubuntu-24.04; do
+            echo "Processing $version..."
             mkdir -p "release/$version/dist"
-            cp "artifacts/apicov-$version/apicov" "release/$version/dist/"
-            cp "artifacts/apicov-$version/run.sh" "release/$version/dist/"
+            if [ -f "artifacts/apicov-$version/apicov" ]; then
+              cp "artifacts/apicov-$version/apicov" "release/$version/dist/"
+            else
+              echo "Warning: apicov not found for $version"
+            fi
+            if [ -f "artifacts/apicov-$version/run.sh" ]; then
+              cp "artifacts/apicov-$version/run.sh" "release/$version/dist/"
+            else
+              echo "Warning: run.sh not found for $version"
+            fi
           done
 
       - name: List release files
         run: |
+          echo "Listing files in release directory:"
           find release -type f
 
       - name: Create Release
