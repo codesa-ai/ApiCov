@@ -75,31 +75,54 @@ jobs:
 
       - name: Update dist directory in repository
         run: |
+          echo "Current working directory: $(pwd)"
+          echo "Listing current directory contents:"
+          ls -la
+          
           # Configure git
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
           
           # Get the current tag
           TAG_NAME=${GITHUB_REF#refs/tags/}
+          echo "Current tag: $TAG_NAME"
           
           # Get repository root
           REPO_ROOT=$(git rev-parse --show-toplevel)
+          echo "Repository root: $REPO_ROOT"
+          echo "Listing repository root contents:"
+          ls -la "$REPO_ROOT"
           
           # Update dist directory
+          echo "Creating dist directory in repository root"
           mkdir -p "$REPO_ROOT/dist"
+          echo "Listing dist directory before copy:"
+          ls -la "$REPO_ROOT/dist" || true
+          
+          echo "Copying files from $(pwd)/dist to $REPO_ROOT/dist"
           cp "$(pwd)/dist/apicov" "$REPO_ROOT/dist/"
           cp "$(pwd)/dist/run.sh" "$REPO_ROOT/dist/"
           
+          echo "Listing dist directory after copy:"
+          ls -la "$REPO_ROOT/dist"
+          
           # Ensure files are executable
+          echo "Setting executable permissions"
           chmod +x "$REPO_ROOT/dist/apicov"
           chmod +x "$REPO_ROOT/dist/run.sh"
           
+          echo "Listing dist directory after chmod:"
+          ls -la "$REPO_ROOT/dist"
+          
           # Commit changes
+          echo "Adding files to git"
           git add "$REPO_ROOT/dist/"
+          echo "Committing changes"
           git commit -m "Update dist directory for $TAG_NAME [skip ci]"
           
-          # Create a new tag with the updated dist directory
+          echo "Creating new tag"
           git tag -f $TAG_NAME
+          echo "Pushing tag"
           git push origin $TAG_NAME --force
 
       - name: Upload artifacts
