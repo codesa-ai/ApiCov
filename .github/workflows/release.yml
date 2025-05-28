@@ -82,17 +82,21 @@ jobs:
           # Get the current tag
           TAG_NAME=${GITHUB_REF#refs/tags/}
           
-          # Get repository root
+          # Get repository root and parent directory
           REPO_ROOT=$(git rev-parse --show-toplevel)
+          PARENT_DIR=$(dirname "$REPO_ROOT")
           
-          # Update dist directory
-          mkdir -p "$REPO_ROOT/dist"
-          cp "$(pwd)/dist/apicov" "$REPO_ROOT/dist/"
-          cp "$(pwd)/dist/run.sh" "$REPO_ROOT/dist/"
+          # Update dist directory in parent directory
+          mkdir -p "$PARENT_DIR/dist"
+          cp "$(pwd)/dist/apicov" "$PARENT_DIR/dist/"
+          cp "$(pwd)/dist/run.sh" "$PARENT_DIR/dist/"
           
           # Ensure files are executable
-          chmod +x "$REPO_ROOT/dist/apicov"
-          chmod +x "$REPO_ROOT/dist/run.sh"
+          chmod +x "$PARENT_DIR/dist/apicov"
+          chmod +x "$PARENT_DIR/dist/run.sh"
+          
+          # Change to parent directory for git operations
+          cd "$PARENT_DIR"
           
           # Commit changes
           git add dist/
