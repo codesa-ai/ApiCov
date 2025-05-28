@@ -82,14 +82,17 @@ jobs:
           # Get the current tag
           TAG_NAME=${GITHUB_REF#refs/tags/}
           
+          # Get repository root
+          REPO_ROOT=$(git rev-parse --show-toplevel)
+          
           # Update dist directory
-          mkdir -p dist
-          cp "$(pwd)/dist/apicov" "$(pwd)/dist/"
-          cp "$(pwd)/dist/run.sh" "$(pwd)/dist/"
+          mkdir -p "$REPO_ROOT/dist"
+          cp "$(pwd)/dist/apicov" "$REPO_ROOT/dist/"
+          cp "$(pwd)/dist/run.sh" "$REPO_ROOT/dist/"
           
           # Ensure files are executable
-          chmod +x "$(pwd)/dist/apicov"
-          chmod +x "$(pwd)/dist/run.sh"
+          chmod +x "$REPO_ROOT/dist/apicov"
+          chmod +x "$REPO_ROOT/dist/run.sh"
           
           # Commit changes
           git add dist/
