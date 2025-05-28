@@ -12,6 +12,9 @@ inputs:
   root_path:
     description: 'The directory where the repo is cloned'
     required: true
+  api_key:
+    description: 'API key for uploading coverage data to the endpoint'
+    required: true
 
 runs:
   using: "composite"
@@ -26,8 +29,20 @@ runs:
         fi
       shell: bash
 
+    - name: Debug inputs
+      run: |
+        echo "Debug: root_path = ${{ inputs.root_path }}"
+        echo "Debug: install_path = ${{ inputs.install_path }}"
+        echo "Debug: api_key = ${{ inputs.api_key != '' && '***' || 'not set' }}"
+        echo "Debug: GITHUB_ACTION_PATH = $GITHUB_ACTION_PATH"
+      shell: bash
+
     - name: Run APICov
-      run: ${GITHUB_ACTION_PATH}/dist/run.sh "${{ inputs.root_path }}" "${{ inputs.install_path }}"
+      run: |
+        echo "Debug: Constructing command..."
+        CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.install_path }}\" ${{ inputs.api_key && format('--api-key {0}', inputs.api_key) || '' }}"
+        echo "Debug: Full command: $CMD"
+        eval "$CMD"
       shell: bash
     # - name: Debug directory
     #   run: |

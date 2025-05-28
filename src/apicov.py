@@ -1,18 +1,37 @@
 import argparse
 import json
 import os
+import requests
 from modules.ExportFetcher import ExportFetcher
 from modules.Utils import find_shared_libraries
 from modules.Coverage import LibCoverage
 from modules.logging_config import logging 
 
+def upload_coverage_data(coverage_data, api_key):
+    """Upload coverage data to the endpoint."""
+    url = "https://callback-373812666155.europe-west2.run.app"
+    headers = {"Content-Type": "application/json"}
+    payload = {
+        "api_key": api_key,
+        "coverage": coverage_data
+    }
+    
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+        response.raise_for_status()
+        logging.info("Successfully uploaded coverage data")
+        return True
+    except requests.exceptions.RequestException as e:
+        logging.error("Failed to upload coverage data: %s", e)
+        return False
+
 def main():
     parser = argparse.ArgumentParser(description="Code SA API Coverage Tool")
     parser.add_argument('project_dir', type=str, help='Path to the root directory')
     parser.add_argument('install_dir', type=str, help='Path to where the exported header files are installed')
+    parser.add_argument('--api-key', type=str, help='API key for uploading coverage data', required=False)
 
     args = parser.parse_args()
-
 
     logging.debug("Looking for shared libraries in the project directory")
     shared_libs = find_shared_libraries(args.project_dir)
@@ -57,7 +76,10 @@ def main():
     with open(apicov_file, 'w') as fh:
         json.dump(json_data, fh)
 
-
+    # Upload coverage data if API key is provided
+    if args.api_key:
+        logging.info("Uploading coverage data to endpoint")
+        upload_coverage_data(json_data, args.api_key)
 
 if __name__ == "__main__":
     main()
