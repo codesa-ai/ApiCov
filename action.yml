@@ -8,7 +8,7 @@ branding:
 inputs:
   install_path:
     description: 'The directory where the build is installed'
-    required: true
+    required: false
   root_path:
     description: 'The directory where the repo is cloned'
     required: true
@@ -32,26 +32,23 @@ runs:
     - name: Debug inputs
       run: |
         echo "Debug: root_path = ${{ inputs.root_path }}"
-        echo "Debug: install_path = ${{ inputs.install_path }}"
         echo "Debug: api_key = ${{ inputs.api_key != '' && '***' || 'not set' }}"
+        echo "Debug: install_path = ${{ inputs.install_path != '' && inputs.install_path || 'not set' }}"
         echo "Debug: GITHUB_ACTION_PATH = $GITHUB_ACTION_PATH"
       shell: bash
 
     - name: Run APICov
       run: |
         echo "Debug: Constructing command..."
-        CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.install_path }}\" ${{ inputs.api_key && format('--api-key {0}', inputs.api_key) || '' }}"
+        if [ -n "${{ inputs.install_path }}" ]; then
+          CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\" \"${{ inputs.install_path }}\""
+        else
+          CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\""
+        fi
         echo "Debug: Full command: $CMD"
         eval "$CMD"
       shell: bash
-    # - name: Debug directory
-    #   run: |
-    #     ls -la ${{ inputs.root_path }}
-    #   shell: bash
-    # - name: Debug directory
-    #   run: |
-    #     ls -la ${{ inputs.install_path }}
-    #   shell: bash    
+
     - name: "Upload JSON files"
       uses: actions/upload-artifact@v4
       with:

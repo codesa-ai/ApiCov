@@ -198,7 +198,7 @@ jobs:
               - name: Run APICov
                 run: |
                   echo "Debug: Constructing command..."
-                  CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.install_path }}\" ${{ inputs.api_key && format('--api-key {0}', inputs.api_key) || '' }}"
+                  CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\" \"${{ inputs.install_path }}\""
                   echo "Debug: Full command: $CMD"
                   eval "$CMD"
                 shell: bash

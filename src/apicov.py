@@ -28,8 +28,8 @@ def upload_coverage_data(coverage_data, api_key):
 def main():
     parser = argparse.ArgumentParser(description="Code SA API Coverage Tool")
     parser.add_argument('project_dir', type=str, help='Path to the root directory')
-    parser.add_argument('install_dir', type=str, help='Path to where the exported header files are installed')
-    parser.add_argument('--api-key', type=str, help='API key for uploading coverage data', required=False)
+    parser.add_argument('api-key', type=str, help='API key for uploading coverage data')
+    parser.add_argument('--install_dir', type=str, help='Path to where the exported header files are installed')
 
     args = parser.parse_args()
 
