@@ -1,22 +1,35 @@
 [project]
 name = "apicov"
 version = "0.1.0"
-description = "Api coverage Collector"
+authors = [
+  { name="Code SA", email="contact@codes-sa.ai" },
+]
+description = "A tool to collect API coverage data from C/C++ projects"
 readme = "README.md"
 requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
 dependencies = [
     "pytest>=8.3.5",
     "ruff>=0.11.10",
     "pyinstaller>=6.6.0",
+    "requests>=2.31.0",
 ]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[project.urls]
+"Homepage" = "https://github.com/codesa-ai/ApiCov"
+"Bug Tracker" = "https://github.com/codesa-ai/ApiCov/issues"
+
 [tool.pytest.ini_options]
 testpaths = ["src/tests"]
-python_files = ["test_*.py", "*_test.py"]
+python_files = ["test*.py"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src"]

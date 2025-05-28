@@ -46,6 +46,7 @@ jobs:
             --add-binary "/usr/lib/x86_64-linux-gnu/libm.so.6:." \
             --hidden-import=gcov \
             --hidden-import=modules \
+            --hidden-import=requests \
             --add-data "src/modules:modules" \
             src/apicov.py
           # Ensure binary is executable
@@ -63,9 +64,9 @@ jobs:
           echo '' >> dist/run.sh
           echo '# Check if the apicov binary exists in the same directory' >> dist/run.sh
           echo 'if [[ -f "$SCRIPT_DIR/apicov" ]]; then' >> dist/run.sh
-          echo '  echo "Executing: $SCRIPT_DIR/apicov $1 $2"' >> dist/run.sh
+          echo '  echo "Executing: $SCRIPT_DIR/apicov $1 $2 $3"' >> dist/run.sh
           echo '  # Run the apicov binary with the provided arguments' >> dist/run.sh
-          echo '  "$SCRIPT_DIR/apicov" "$1" "$2"' >> dist/run.sh
+          echo '  "$SCRIPT_DIR/apicov" "$1" "$2" "$3"' >> dist/run.sh
           echo 'else' >> dist/run.sh
           echo '  echo "Error: apicov binary not found in $SCRIPT_DIR"' >> dist/run.sh
           echo '  exit 1' >> dist/run.sh
@@ -169,12 +170,37 @@ jobs:
             root_path:
               description: 'The directory where the repo is cloned'
               required: true
+            api_key:
+              description: 'API key for uploading coverage data to the endpoint'
+              required: true
 
           runs:
             using: "composite"
             steps:
+              - name: Detect Ubuntu version
+                id: detect_ubuntu
+                run: |
+                  if [[ "$(lsb_release -rs)" == "22.04" ]]; then
+                    echo "version=ubuntu-22.04" >> $GITHUB_OUTPUT
+                  else
+                    echo "version=ubuntu-24.04" >> $GITHUB_OUTPUT
+                  fi
+                shell: bash
+
+              - name: Debug inputs
+                run: |
+                  echo "Debug: root_path = ${{ inputs.root_path }}"
+                  echo "Debug: install_path = ${{ inputs.install_path }}"
+                  echo "Debug: api_key = ${{ inputs.api_key != '' && '***' || 'not set' }}"
+                  echo "Debug: GITHUB_ACTION_PATH = $GITHUB_ACTION_PATH"
+                shell: bash
+
               - name: Run APICov
-                run: ${GITHUB_ACTION_PATH}/dist/run.sh "${{ inputs.root_path }}" "${{ inputs.install_path }}"
+                run: |
+                  echo "Debug: Constructing command..."
+                  CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.install_path }}\" ${{ inputs.api_key && format('--api-key {0}', inputs.api_key) || '' }}"
+                  echo "Debug: Full command: $CMD"
+                  eval "$CMD"
                 shell: bash
 
               - name: "Upload JSON files"
