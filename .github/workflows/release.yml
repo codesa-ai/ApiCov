@@ -97,32 +97,20 @@ jobs:
           echo "Listing repository root contents:"
           ls -la "$REPO_ROOT"
           
-          # Update dist directory
+          # Ensure dist directory exists
           echo "Creating dist directory in repository root"
           mkdir -p "$REPO_ROOT/dist"
-          echo "Listing dist directory before copy:"
+          echo "Listing dist directory:"
           ls -la "$REPO_ROOT/dist" || true
-          
-          echo "Copying files from build step"
-          echo "Binary path: ${{ steps.build.outputs.binary_path }}"
-          echo "Script path: ${{ steps.build.outputs.script_path }}"
-          cp "${{ steps.build.outputs.binary_path }}" "$REPO_ROOT/dist/apicov"
-          cp "${{ steps.build.outputs.script_path }}" "$REPO_ROOT/dist/run.sh"
-          
-          echo "Listing dist directory after copy:"
-          ls -la "$REPO_ROOT/dist"
           
           # Ensure files are executable
           echo "Setting executable permissions"
-          chmod +x "$REPO_ROOT/dist/apicov"
-          chmod +x "$REPO_ROOT/dist/run.sh"
+          chmod +x dist/apicov
+          chmod +x dist/run.sh
           
-          echo "Listing dist directory after chmod:"
-          ls -la "$REPO_ROOT/dist"
-          
-          # Commit changes
+          # Add files to git
           echo "Adding files to git"
-          git add "$REPO_ROOT/dist/"
+          git add dist/
           echo "Committing changes"
           git commit -m "Update dist directory for $TAG_NAME [skip ci]"
           
