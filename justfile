@@ -21,7 +21,7 @@ test-prep:
 
 # Run the tests (vorbis)
 test:
-  pytest src/tests/tests.py
+  pytest src/tests/tests.py -v
 
 # Build binary
 build:
