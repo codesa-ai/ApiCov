@@ -36,6 +36,7 @@ jobs:
           uv pip install -e .
 
       - name: Build binary
+        id: build
         run: |
           source .venv/bin/activate
           pyinstaller --onefile \
@@ -49,6 +50,9 @@ jobs:
             src/apicov.py
           # Ensure binary is executable
           chmod +x dist/apicov
+          # Save binary location
+          echo "binary_path=$(pwd)/dist/apicov" >> $GITHUB_OUTPUT
+          echo "script_path=$(pwd)/dist/run.sh" >> $GITHUB_OUTPUT
 
       - name: Create run script
         run: |
@@ -99,9 +103,11 @@ jobs:
           echo "Listing dist directory before copy:"
           ls -la "$REPO_ROOT/dist" || true
           
-          echo "Copying files from $(pwd)/dist to $REPO_ROOT/dist"
-          cp "$(pwd)/dist/apicov" "$REPO_ROOT/dist/"
-          cp "$(pwd)/dist/run.sh" "$REPO_ROOT/dist/"
+          echo "Copying files from build step"
+          echo "Binary path: ${{ steps.build.outputs.binary_path }}"
+          echo "Script path: ${{ steps.build.outputs.script_path }}"
+          cp "${{ steps.build.outputs.binary_path }}" "$REPO_ROOT/dist/apicov"
+          cp "${{ steps.build.outputs.script_path }}" "$REPO_ROOT/dist/run.sh"
           
           echo "Listing dist directory after copy:"
           ls -la "$REPO_ROOT/dist"
