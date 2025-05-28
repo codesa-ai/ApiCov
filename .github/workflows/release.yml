@@ -90,6 +90,11 @@ jobs:
           # Get the current tag
           TAG_NAME=${GITHUB_REF#refs/tags/}
           echo "Current tag: $TAG_NAME"
+
+          # Checkout the branch that the tag points to
+          BRANCH_NAME=$(git name-rev --name-only "$TAG_NAME")
+          echo "Checking out branch: $BRANCH_NAME"
+          git checkout "$BRANCH_NAME"
           
           # Get repository root
           REPO_ROOT=$(git rev-parse --show-toplevel)
@@ -118,6 +123,8 @@ jobs:
           git tag -f $TAG_NAME
           echo "Pushing tag"
           git push origin $TAG_NAME --force
+          echo "Pushing branch"
+          git push origin "$BRANCH_NAME"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
