@@ -9,7 +9,7 @@ from modules.logging_config import logging
 
 def upload_coverage_data(coverage_data, api_key):
     """Upload coverage data to the endpoint."""
-    url = "https://callback-373812666155.europe-west2.run.app"
+    url = "https://callback-373812666155.europe-west2.run.app/upload"
     headers = {"Content-Type": "application/json"}
     payload = {
         "api_key": api_key,

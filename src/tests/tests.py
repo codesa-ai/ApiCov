@@ -1,8 +1,6 @@
 import sys
 import os
 import unittest.mock as mock
-import json
-import subprocess
 import requests
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -72,7 +70,7 @@ def test_upload_coverage_data():
         # Verify the request was made with correct parameters
         mock_post.assert_called_once()
         args, kwargs = mock_post.call_args
-        assert args[0] == "https://callback-373812666155.europe-west2.run.app"
+        assert args[0] == "https://callback-373812666155.europe-west2.run.app/upload"
         assert kwargs["headers"] == {"Content-Type": "application/json"}
         assert kwargs["json"] == {
             "api_key": api_key,

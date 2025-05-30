@@ -14,14 +14,16 @@ ApiCov uses `gcov` to calculate coverage.
 ### Inputs
 The action requires two inputs
 * The directory where the repository is cloned on the runner. 
-* The directory where you install the library on the runner during your workflow. 
+* The api key associated with the library. 
+* (optional) The directory where you install the library on the runner during your workflow. 
 
 ## Inputs
 
 | Input | Description | Required |
 |-------|-------------|----------|
-| `install_path` | The directory where the build is installed | Yes |
 | `root_path` | The directory where the repo is cloned | Yes |
+| `api_key` | The API key associated with the library | Yes |
+| `install_path` | The directory where the build is installed | No |
 
 ## Outputs
 
@@ -31,24 +33,43 @@ The action generates two JSON files:
 
 These files are uploaded as artifacts and can be downloaded in subsequent steps.
 
-## Private Repository Setup
+## Using this action 
 
-To use this action in a private repository:
+To use this action in a private repository
 
-1. Create a new repository for the action
-2. Push this code to that repository
-3. Create a release with a tag (e.g., v1.0.0)
-4. Reference the action in your workflow using:
+* Reference the action in your workflow using:
    ```yaml
-    - name: 'ApiCov'
-    uses: your-username/apicov@v0.0.1
-    with:
-        install_path: ${{ steps.install.directory }} # Install path as part of your workflow.
-        root_path: ${{ github.workspace }}
+      - name: 'ApiCov'
+        uses: codesa-ai/ApiCov@v0.1.0
+        with:
+          root_path: ${{ github.workspace }}
+          api_key: ${{ secrets.APICOV_KEY }}
+          install_path: ${{ steps.install.outputs.prefix }}
     ```
+You should make sure this action is invoked towards the end of your CI workflow to ensure all tests have run with coverage enabled. 
 
 ## License
-MIT
 
-Currently the action just uploads the two files as artifacts. Upload to a server for visualization is WIP. 
+MIT License
+
+Copyright (c) 2025 ApiCov
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
 
