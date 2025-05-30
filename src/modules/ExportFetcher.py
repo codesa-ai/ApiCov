@@ -4,7 +4,8 @@ import sys
 import json
 import subprocess
 
-from modules.logging_config import logging 
+from modules.logging_config import logging
+
 
 class ExportFetcher(object):
     def __init__(self):
@@ -15,9 +16,15 @@ class ExportFetcher(object):
     def grep_for_symbol(self, symbol, install_dir):
         for root, _, files in os.walk(install_dir):
             for file in files:
-                if file.endswith(".h") or file.endswith(".hpp") or file.endswith(".hxx"):
+                if (
+                    file.endswith(".h")
+                    or file.endswith(".hpp")
+                    or file.endswith(".hxx")
+                ):
                     header = os.path.join(root, file)
-                    logging.debug("Searching for symbol: %s in header: %s", symbol, header)
+                    logging.debug(
+                        "Searching for symbol: %s in header: %s", symbol, header
+                    )
                     cmd = ["grep", "-rw", symbol, header]
                     result = subprocess.run(cmd, capture_output=True, text=True)
                     if result.returncode == 0:
@@ -30,7 +37,7 @@ class ExportFetcher(object):
             self.grep_for_symbol(symbol, os.path.abspath(install_dir))
 
     def find_functions_in_file(self, file_data):
-        pattern = r'(?:\s*(static\s+|inline\s+|virtual\s+)?)?([\w\s*]+?)\s+([\w_]+)\s*\(([^)]*)\)\s*(?:const)?\s*(?:volatile)?\s*;'
+        pattern = r"(?:\s*(static\s+|inline\s+|virtual\s+)?)?([\w\s*]+?)\s+([\w_]+)\s*\(([^)]*)\)\s*(?:const)?\s*(?:volatile)?\s*;"
         functions = re.compile(pattern, re.M)
         matches = functions.findall(file_data)
         if matches:
@@ -40,9 +47,9 @@ class ExportFetcher(object):
                     self.symbols.append(function_name.strip())
 
     def _add_functions(self, output):
-        for line in output.split('\n'):
+        for line in output.split("\n"):
             api = line.split(":")[-1]
-            if api == '':
+            if api == "":
                 continue
             if api not in self.function_names:
                 self.symbols.append(api.strip())
@@ -50,7 +57,7 @@ class ExportFetcher(object):
     def _add_symbol(self, symbol):
         if symbol not in self.symbols:
             self.symbols.append(symbol)
- 
+
     def get_exports_from_lib(self, shared_lib):
         """
         Extracts exported symbols from a shared library using the `nm` and `grep` commands.
@@ -72,11 +79,16 @@ class ExportFetcher(object):
         """
         nm_command = ["nm", "-D", "--defined-only", shared_lib]
         grep_command = ["grep", " T "]
-        logging.debug("Running: %s", ' '.join(nm_command))
+        logging.debug("Running: %s", " ".join(nm_command))
         proc1 = subprocess.run(nm_command, stdout=subprocess.PIPE)
-        logging.debug("Running: %s", ''.join(grep_command))
-        proc2 = subprocess.run(grep_command, input=proc1.stdout.decode('utf-8'), capture_output=True, text=True)
-        for line in proc2.stdout.split('\n'):
+        logging.debug("Running: %s", "".join(grep_command))
+        proc2 = subprocess.run(
+            grep_command,
+            input=proc1.stdout.decode("utf-8"),
+            capture_output=True,
+            text=True,
+        )
+        for line in proc2.stdout.split("\n"):
             if line.find("operator") != -1:
                 continue
             if line.find("mangle_path") != -1:
@@ -89,17 +101,17 @@ class ExportFetcher(object):
             if "::" in line:
                 # if line.find("operator") != -1:
                 #     continue
-                pattern= r'\w+::(\w+)[\(\[]'
+                pattern = r"\w+::(\w+)[\(\[]"
                 regex = re.compile(pattern, re.M)
                 matches = regex.findall(line)
                 for symbol in matches:
                     self._add_symbol(symbol)
             elif line:
                 symbol = line.split()[-1]
-                if symbol == '':
+                if symbol == "":
                     continue
                 self._add_symbol(symbol)
-       # proc2 = subprocess.Popen(grep_command, stdin=proc1.stdout, stdout=subprocess.PIPE)
+        # proc2 = subprocess.Popen(grep_command, stdin=proc1.stdout, stdout=subprocess.PIPE)
         # proc1.stdout.close()
         return proc2.returncode
 
@@ -110,7 +122,7 @@ class ExportFetcher(object):
         Returns:
             str: The path to the build directory, or the root directory if no specific build directory is found.
         """
-        common_build_dirs = ['build', 'out', 'bin']
+        common_build_dirs = ["build", "out", "bin"]
         for build_dir in common_build_dirs:
             potential_dir = os.path.join(self._root_dir, build_dir)
             if os.path.isdir(potential_dir):
@@ -118,11 +130,11 @@ class ExportFetcher(object):
 
         # Recursively search for specific build system files
         for dirpath, _, filenames in os.walk(self._root_dir):
-            if 'CMakeCache.txt' in filenames or 'build.ninja' in filenames:
+            if "CMakeCache.txt" in filenames or "build.ninja" in filenames:
                 return dirpath
 
         return self._root_dir
-                    
+
     def get_install_headers(self, build_system):
         build_dir = self.find_build_dir()
         if build_system in ["make", "cmake"]:
@@ -134,16 +146,15 @@ class ExportFetcher(object):
         else:
             raise ValueError("Unsupported build system")
 
-        logging.debug("Running cmd: %s in %s", ' '.join(cmd), build_dir)
+        logging.debug("Running cmd: %s in %s", " ".join(cmd), build_dir)
         result = subprocess.run(cmd, cwd=build_dir, capture_output=True, text=True)
         if result.returncode != 0:
             logging.error("Failed to run dry-run install command")
             return
 
-        for line in result.stdout.split('\n'):
+        for line in result.stdout.split("\n"):
             print(line)
             if line.endswith(".h") or line.endswith(".hpp") or line.endswith(".hxx"):
-
                 self.headers.append(line.strip())
 
     def run_install_command(self, build_system):
@@ -158,7 +169,7 @@ class ExportFetcher(object):
         """
         build_dir = self.find_build_dir()
         env = os.environ.copy()
-        env['DESTDIR'] = '/usr/local'
+        env["DESTDIR"] = "/usr/local"
 
         if build_system in ["make", "cmake"]:
             cmd = ["make", "install"]
@@ -169,13 +180,16 @@ class ExportFetcher(object):
         else:
             raise ValueError("Unsupported build system")
 
-        logging.debug("Running install cmd: %s in %s", ' '.join(cmd), build_dir)
-        result = subprocess.run(cmd, cwd=build_dir, env=env, capture_output=True, text=True)
+        logging.debug("Running install cmd: %s in %s", " ".join(cmd), build_dir)
+        result = subprocess.run(
+            cmd, cwd=build_dir, env=env, capture_output=True, text=True
+        )
         if result.returncode != 0:
             logging.error("Failed to run install command")
             raise subprocess.CalledProcessError(result.returncode, cmd)
-    
-if __name__=="__main__":
+
+
+if __name__ == "__main__":
     d = ExportFetcher()
     # d.crawl_dir(sys.argv[1], sys.argv[2])
     # print(d.function_names)
@@ -190,11 +204,9 @@ if __name__=="__main__":
     for install_dir in install_dirs:
         d.filter_non_apis(install_dir)
     json_data["library"] = d.apis
-    with open('apis.json', 'w') as fh:
+    with open("apis.json", "w") as fh:
         json.dump(json_data, fh)
-    
-    with open('apis.txt', "w") as fh:
+
+    with open("apis.txt", "w") as fh:
         for fn in d.apis:
-            fh.write(fn+"\n")
-        
-    
+            fh.write(fn + "\n")

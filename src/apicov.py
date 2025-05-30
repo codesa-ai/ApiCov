@@ -5,17 +5,15 @@ import requests
 from modules.ExportFetcher import ExportFetcher
 from modules.Utils import find_shared_libraries
 from modules.Coverage import LibCoverage
-from modules.logging_config import logging 
+from modules.logging_config import logging
+
 
 def upload_coverage_data(coverage_data, api_key):
     """Upload coverage data to the endpoint."""
     url = "https://callback-373812666155.europe-west2.run.app/upload"
     headers = {"Content-Type": "application/json"}
-    payload = {
-        "api_key": api_key,
-        "coverage": coverage_data
-    }
-    
+    payload = {"api_key": api_key, "coverage": coverage_data}
+
     try:
         response = requests.post(url, headers=headers, json=payload)
         response.raise_for_status()
@@ -25,11 +23,16 @@ def upload_coverage_data(coverage_data, api_key):
         logging.error("Failed to upload coverage data: %s", e)
         return False
 
+
 def main():
     parser = argparse.ArgumentParser(description="Code SA API Coverage Tool")
-    parser.add_argument('project_dir', type=str, help='Path to the root directory')
-    parser.add_argument('api_key', type=str, help='API key for uploading coverage data')
-    parser.add_argument('--install_dir', type=str, help='Path to where the exported header files are installed')
+    parser.add_argument("project_dir", type=str, help="Path to the root directory")
+    parser.add_argument("api_key", type=str, help="API key for uploading coverage data")
+    parser.add_argument(
+        "--install_dir",
+        type=str,
+        help="Path to where the exported header files are installed",
+    )
 
     args = parser.parse_args()
 
@@ -50,11 +53,11 @@ def main():
 
     logging.info("Total number of APIs found: %d", len(lib_exports.apis))
     json_data = {"apis": lib_exports.apis}
-    api_file = os.path.join(args.project_dir, 'apis.json')
+    api_file = os.path.join(args.project_dir, "apis.json")
     logging.debug("Writing APIs to:  %s", api_file)
-    with open(api_file, 'w') as fh:
+    with open(api_file, "w") as fh:
         json.dump(json_data, fh)
-    
+
     entry_cov = LibCoverage(lib_exports.apis, args.project_dir)
     logging.info("Running gcov to identify API sizes and coverage")
     entry_cov.run_gcov_on_gcno_files()
@@ -71,15 +74,16 @@ def main():
         else:
             logging.error("Failed to find size for API: %s", api)
             failed_apis.append(api)
-    apicov_file = os.path.join(args.project_dir, 'api_coverage.json')
-    logging.info("Writing API coverage to: %s",apicov_file)
-    with open(apicov_file, 'w') as fh:
+    apicov_file = os.path.join(args.project_dir, "api_coverage.json")
+    logging.info("Writing API coverage to: %s", apicov_file)
+    with open(apicov_file, "w") as fh:
         json.dump(json_data, fh)
 
     # Upload coverage data if API key is provided
     if args.api_key:
         logging.info("Uploading coverage data to endpoint")
         upload_coverage_data(json_data, args.api_key)
+
 
 if __name__ == "__main__":
     main()

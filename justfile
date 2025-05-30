@@ -27,3 +27,13 @@ test:
 build:
   . .venv/bin/activate && .venv/bin/python -m PyInstaller --onefile --python-option="--enable-shared" src/apicov.py
 
+# reformat the code with Ruff
+format:
+  uv run ruff format
+
+# check and fix the code with Ruff
+lint:
+  uv run ruff check --fix
+
+# make sure everything is in a fit state to check in
+prepare: lint format test

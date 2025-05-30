@@ -1,7 +1,6 @@
 import os
 
 
-
 def identify_build_system(project_dir):
     """
     Identifies the build system used in the given project directory.
@@ -12,16 +11,17 @@ def identify_build_system(project_dir):
     Returns:
         str: The name of the build system ('cmake', 'meson', 'make', 'ninja', or 'unknown').
     """
-    if os.path.exists(os.path.join(project_dir, 'CMakeLists.txt')):
-        return 'cmake'
-    elif os.path.exists(os.path.join(project_dir, 'meson.build')):
-        return 'meson'
-    elif os.path.exists(os.path.join(project_dir, 'Makefile')):
-        return 'make'
-    elif os.path.exists(os.path.join(project_dir, 'build.ninja')):
-        return 'ninja'
+    if os.path.exists(os.path.join(project_dir, "CMakeLists.txt")):
+        return "cmake"
+    elif os.path.exists(os.path.join(project_dir, "meson.build")):
+        return "meson"
+    elif os.path.exists(os.path.join(project_dir, "Makefile")):
+        return "make"
+    elif os.path.exists(os.path.join(project_dir, "build.ninja")):
+        return "ninja"
     else:
-        return 'unknown'
+        return "unknown"
+
 
 def find_shared_libraries(root_dir):
     """
@@ -36,8 +36,10 @@ def find_shared_libraries(root_dir):
     shared_libs = []
     for dirpath, dirnames, filenames in os.walk(root_dir):
         # Include hidden directories
-        dirnames[:] = [d for d in dirnames if not d.startswith('.')] + [d for d in dirnames if d.startswith('.')]
+        dirnames[:] = [d for d in dirnames if not d.startswith(".")] + [
+            d for d in dirnames if d.startswith(".")
+        ]
         for filename in filenames:
-            if filename.endswith('.so'):
+            if filename.endswith(".so"):
                 shared_libs.append(os.path.join(dirpath, filename))
     return shared_libs
