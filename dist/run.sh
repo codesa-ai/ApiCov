@@ -11,7 +11,7 @@ echo "Debug: Argument 3 (install_path): $3"
 # Check if the apicov binary exists in the same directory
 if [[ -f "$SCRIPT_DIR/apicov" ]]; then
   echo "Debug: Found apicov binary at: $SCRIPT_DIR/apicov"
-  
+
   # Construct the command based on number of arguments
   if [ -n "$3" ]; then
     echo "Debug: Using install_dir: $3"
@@ -20,11 +20,11 @@ if [[ -f "$SCRIPT_DIR/apicov" ]]; then
     echo "Debug: No install_dir provided"
     CMD="$SCRIPT_DIR/apicov \"$1\" \"$2\""
   fi
-  
+
   echo "Debug: Full command to be executed: $CMD"
   # Run the apicov binary with the provided arguments
   eval "$CMD"
 else
   echo "Error: apicov binary not found in $SCRIPT_DIR"
   exit 1
-fi 
+fi
