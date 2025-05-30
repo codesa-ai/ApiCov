@@ -1,8 +1,12 @@
 *.zip
-*/__pycache__/*
+__pycache__/
+*.py[cod]
+*$py.class
 build/*
 */build/*
 *.spec
 *venv*
 dev_files/*
 artifact/*
+tests/vorbis/*
+src/modules/__pycache__/
