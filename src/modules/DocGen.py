@@ -10,7 +10,40 @@ import xml.etree.ElementTree as ET
 
 class DocGen:
     """
-
+    A class to extract API documentation from Doxygen-generated HTML or XML files.
+    
+    This class provides functionality to parse Doxygen documentation and extract
+    structured API documentation for specified functions. It can handle both
+    HTML files (converting them to XML for parsing) and existing XML files.
+    
+    The class extracts the following information for each API:
+    - Function prototype/signature
+    - Brief description
+    - Detailed description
+    - Parameter descriptions
+    - Return value descriptions
+    
+    Attributes:
+        doxygen_path (Path): Path to the Doxygen documentation directory
+        xml_files (List[str]): List of XML file paths for parsing
+        api_docs (Dict[str, str]): Dictionary storing extracted API documentation
+    
+    Example:
+        # Extract documentation from HTML files
+        docgen = DocGen("/path/to/doxygen/html")
+        api_list = ["function1", "function2"]
+        docs = docgen.generate_apidoc(api_list)
+        
+        # Extract documentation from existing XML files
+        docgen = DocGen("/path/to/xml/files", xml=True)
+        docs = docgen.generate_apidoc(api_list)
+        
+        # Save to JSON file
+        docgen.generate_json("output.json")
+    
+    Dependencies:
+        - beautifulsoup4: For HTML/XML parsing
+        - lxml: For XML parsing (recommended for better performance)
     """
     def __init__(self, doxygen_path: str, xml=False):
         """
@@ -182,126 +215,24 @@ class DocGen:
             api_docs[api_name] = doc_string.strip()
         return api_docs
     
-    def _extract_api_documentation_html(self, html_file: Path, api_name: str) -> Optional[str]:
-        """
-        Extract documentation for a specific API from an HTML file.
-        
-        Args:
-            html_file (Path): Path to the HTML file
-            api_name (str): Name of the API to extract documentation for
-            
-        Returns:
-            Optional[str]: Documentation text if found, None otherwise
-        """
-        try:
-            with open(html_file, 'r', encoding='utf-8') as f:
-                content = f.read()
-                
-            # More precise extraction: find the exact function block
-            # First, find all function blocks
-            function_blocks = re.findall(r'<div class="memitem">(.*?)</div>\s*</div>', content, re.DOTALL)
-            
-            for block in function_blocks:
-                # Check if this block contains our target function
-                if api_name in block:
-                    # Extract the memdoc section from this specific block
-                    memdoc_match = re.search(r'<div class="memdoc">(.*?)</div>', block, re.DOTALL)
-                    if memdoc_match:
-                        doc_text = self._clean_html(memdoc_match.group(1))
-                        if doc_text.strip():
-                            return doc_text.strip()
-            
-            # Fallback: try the original patterns if the above doesn't work
-            patterns = [
-                # Pattern 1: Function with anchor and memdoc
-                rf'<a[^>]*name="[^"]*{re.escape(api_name)}[^"]*"[^>]*></a>.*?<h2[^>]*>{re.escape(api_name)}.*?</h2>.*?<div class="memdoc">(.*?)</div>',
-                # Pattern 2: Function in memtitle with memdoc
-                rf'<h2 class="memtitle">[^<]*{re.escape(api_name)}[^<]*</h2>.*?<div class="memdoc">(.*?)</div>',
-                # Pattern 3: Function name in memname with memdoc
-                rf'<td class="memname">[^<]*{re.escape(api_name)}[^<]*</td>.*?<div class="memdoc">(.*?)</div>',
-                # Pattern 4: Function in anchor with memdoc (fallback)
-                rf'<a[^>]*>{re.escape(api_name)}</a>.*?<div class="memdoc">(.*?)</div>',
-                # Pattern 5: Direct memdoc search after function name
-                rf'{re.escape(api_name)}.*?<div class="memdoc">(.*?)</div>'
-            ]
-            
-            for pattern in patterns:
-                matches = re.findall(pattern, content, re.DOTALL | re.IGNORECASE)
-                if matches:
-                    # Clean up the HTML and extract text
-                    doc_text = self._clean_html(matches[0])
-                    if doc_text.strip():
-                        return doc_text.strip()
-                            
-        except Exception as e:
-            print(f"Error processing {html_file}: {e}")
-            
-        return None
-    
-    def _clean_html(self, html_content: str) -> str:
-        """
-        Clean HTML content and extract plain text.
-        
-        Args:
-            html_content (str): HTML content to clean
-            
-        Returns:
-            str: Cleaned plain text
-        """
-        # First, handle special Doxygen sections
-        # Extract return values
-        return_matches = re.findall(r'<dl class="section return"><dt>Returns</dt><dd>(.*?)</dd></dl>', html_content, re.DOTALL)
-        return_text = ' '.join(return_matches)
-        
-        # Extract parameter descriptions
-        param_matches = re.findall(r'<dl class="params"><dt>Parameters</dt><dd>(.*?)</dd></dl>', html_content, re.DOTALL)
-        param_text = ' '.join(param_matches)
-        
-        # Extract general description (p tags)
-        desc_matches = re.findall(r'<p>(.*?)</p>', html_content, re.DOTALL)
-        desc_text = ' '.join(desc_matches)
-        
-        # Combine all text
-        combined_text = ' '.join([desc_text, param_text, return_text])
-        
-        # Remove HTML tags from the combined text
-        text = re.sub(r'<[^>]+>', '', combined_text)
-        
-        # Remove extra whitespace
-        text = re.sub(r'\s+', ' ', text)
-        
-        # Remove common Doxygen artifacts
-        text = re.sub(r'\[.*?\]', '', text)  # Remove [text] patterns
-        text = re.sub(r'\{.*?\}', '', text)  # Remove {text} patterns
-        
-        # Clean up common Doxygen formatting
-        text = text.replace('&nbsp;', ' ')
-        text = text.replace('&lt;', '<')
-        text = text.replace('&gt;', '>')
-        text = text.replace('&amp;', '&')
-        
-        # Clean up common HTML entities
-        text = text.replace('&#160;', ' ')
-        text = text.replace('&#9670;', '')
-        
-        return text.strip()
-    
     def generate_json(self, output_file: str) -> bool:
         """
         Generate a JSON file with API documentation.
         
         Args:
-            apidoc (Dict[str, str]): Dictionary with API names as keys and documentation as values
             output_file (str): Path to the output JSON file
 
         Returns:
             bool: True if successful, False otherwise
         """
-        with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(self.api_docs, f, indent=2, ensure_ascii=False)
-            print(f"Generated documentation JSON file: {output_file}")
-
-        return True
+        try:
+            with open(output_file, 'w', encoding='utf-8') as f:
+                json.dump(self.api_docs, f, indent=2, ensure_ascii=False)
+                print(f"Generated documentation JSON file: {output_file}")
+            return True
+        except Exception as e:
+            print(f"Error generating JSON file: {e}")
+            return False
 
     def generate_apidoc(self, api_list: List[str]) -> Dict[str, str]:
         """
@@ -309,10 +240,9 @@ class DocGen:
         
         Args:
             api_list (List[str]): List of API names to extract documentation for
-            output_file (str): Path to the output JSON file
             
         Returns:
-            bool: True if successful, False otherwise
+            Dict[str, str]: Dictionary with API names as keys and documentation as values
         """
         try:
             self.api_docs = self._extract_api_documentation_xml(api_list)
@@ -322,42 +252,7 @@ class DocGen:
             
         except Exception as e:
             print(f"Error generating documentation for APIs: {e}")
-            return False
-
-
-    def get_available_apis(self) -> List[str]:
-        """
-        Get a list of available APIs from the documentation.
-        
-        Returns:
-            List[str]: List of API names found in the documentation
-        """
-        if not self.html_files:
-            self.html_files = self._find_html_files()
-        
-        apis = set()
-        
-        for html_file in self.html_files:
-            try:
-                with open(html_file, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                
-                # Look for function names in the HTML
-                # Common patterns for function names in Doxygen
-                patterns = [
-                    r'<a[^>]*>([a-zA-Z_][a-zA-Z0-9_]*)</a>',
-                    r'<td class="memname">([a-zA-Z_][a-zA-Z0-9_]*)</td>',
-                    r'<a name="[^"]*([a-zA-Z_][a-zA-Z0-9_]*)[^"]*"></a>'
-                ]
-                
-                for pattern in patterns:
-                    matches = re.findall(pattern, content)
-                    apis.update(matches)
-                    
-            except Exception as e:
-                print(f"Error reading {html_file}: {e}")
-        
-        return sorted(list(apis))
+            return {}
 
 
 def main():
@@ -377,39 +272,32 @@ def main():
     
     docgen = DocGen(args.doxygen_path)
     
-    if args.list_apis:
-        apis = docgen.get_available_apis()
-        print("Available APIs:")
-        for api in apis:
-            print(f"  {api}")
-    else:
-        # Read API list from JSON file
-        try:
-            with open(args.api_list, 'r', encoding='utf-8') as jsonfile:
-                api_data = json.load(jsonfile)
-                api_list = api_data["apis"]
+    try:
+        with open(args.api_list, 'r', encoding='utf-8') as jsonfile:
+            api_data = json.load(jsonfile)
+            api_list = api_data["apis"]
 
-            if not isinstance(api_list, list):
-                print("Error: JSON file must contain a list of API names.")
-                return
-        except FileNotFoundError:
-            print(f"Error: JSON file '{args.api_list}' not found")
+        if not isinstance(api_list, list):
+            print("Error: JSON file must contain a list of API names.")
             return
-        except Exception as e:
-            print(f"Error reading JSON file: {e}")
-            return
-        if not api_list:
-            print("Warning: No APIs found in the JSON file")
-            return
-        api_docs = docgen.generate_apidoc(api_list)
-        if api_docs:
-            success = docgen.generate_json(args.output_file)
-            if success:
-                print("Documentation extraction completed successfully!")
-            else:
-                print("Documentation extraction failed!")
+    except FileNotFoundError:
+        print(f"Error: JSON file '{args.api_list}' not found")
+        return
+    except Exception as e:
+        print(f"Error reading JSON file: {e}")
+        return
+    if not api_list:
+        print("Warning: No APIs found in the JSON file")
+        return
+    api_docs = docgen.generate_apidoc(api_list)
+    if api_docs:
+        success = docgen.generate_json(args.output_file)
+        if success:
+            print("Documentation extraction completed successfully!")
         else:
             print("Documentation extraction failed!")
+    else:
+        print("Documentation extraction failed!")
 
 
 if __name__ == "__main__":

@@ -78,10 +78,11 @@ def main():
         apidoc = doc_gen.generate_apidoc(lib_exports.apis)
     else:
         logging.info("No Doxygen path provided, skipping API documentation generation")
+        apidoc = None
 
     json_data = {}
-    failed_apis = []
-
+    no_cov_apis = []
+    no_doc_apis = []
     for api in lib_exports.apis:
 
         if api in entry_cov.api_sizes:
@@ -90,19 +91,25 @@ def main():
             json_data[api]["covered_lines"] = entry_cov.api_coverage[api]
         else:
             logging.error("Failed to find size for API: %s", api)
-            failed_apis.append(api)
+            no_cov_apis.append(api)
         
-        if api in apidoc:
+        if apidoc and api in apidoc:
             json_data[api]["apidoc"] = apidoc[api]
         else:
             logging.error("Failed to find documentation for API: %s", api)
-            failed_apis.append(api)
+            no_doc_apis.append(api)
 
 
     apicov_file = os.path.join(args.project_dir, "api_coverage.json")
     logging.info("Writing API data to: %s", apicov_file)
     with open(apicov_file, "w") as fh:
         json.dump(json_data, fh)
+
+    if no_cov_apis:
+        logging.error("Failed to find size for %d APIs: %s", len(no_cov_apis), no_cov_apis)
+
+    if no_doc_apis:
+        logging.error("Failed to find documentation for %d APIs: %s", len(no_doc_apis), no_doc_apis)
 
     # Upload coverage data if API key is provided
     if args.api_key:
