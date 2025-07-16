@@ -24,12 +24,13 @@ The action requires two inputs
 | `root_path` | The directory where the repo is cloned | Yes |
 | `api_key` | The API key associated with the library | Yes |
 | `install_path` | The directory where the build is installed | No |
+| `doxygen_path` | Path to the Doxygen HTML files (optional, for API documentation extraction) | No |
 
 ## Outputs
 
 The action generates two JSON files:
 - `apis.json`: List of all APIs found in the project
-- `api_coverage.json`: Coverage data for each API
+- `api_coverage.json`: Coverage data for each API (now includes documentation if doxygen_path is provided)
 
 These files are uploaded as artifacts and can be downloaded in subsequent steps.
 
@@ -45,6 +46,7 @@ To use this action in a private repository
           root_path: ${{ github.workspace }}
           api_key: ${{ secrets.APICOV_KEY }}
           install_path: ${{ steps.install.outputs.prefix }}
+          doxygen_path: ${{ steps.doxygen.outputs.html_dir }} # Optional: for API documentation extraction
     ```
 You should make sure this action is invoked towards the end of your CI workflow to ensure all tests have run with coverage enabled. 
 
