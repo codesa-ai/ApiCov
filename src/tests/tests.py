@@ -12,6 +12,7 @@ from modules.ExportFetcher import ExportFetcher
 from modules.Utils import find_shared_libraries
 from modules.logging_config import logging
 from apicov import upload_coverage_data
+from modules.DocGen import DocGen
 
 PROJECT_DIR = os.path.join(os.path.dirname(__file__), "vorbis")
 SHARED_LIBS = os.path.join(os.path.dirname(__file__), "vorbis/lib/.libs")
@@ -90,12 +91,27 @@ def test_upload_coverage_data():
         mock_post.assert_called_once()
 
 
+def test_docgen_apidoc():
+    logging.info("Testing DocGen for API documentation extraction")
+    doxygen_path = os.path.join(os.path.dirname(__file__), "vorbis/doc")
+    docgen = DocGen(doxygen_path)
+    apidoc = docgen.generate_apidoc(APIS)
+    found = False
+    for api in APIS:
+        doc = apidoc.get(api, "")
+        logging.info(f"API: {api}, Doc: {doc[:60]}{'...' if len(doc) > 60 else ''}")
+        if doc.strip():
+            found = True
+    assert found, "No documentation found for any API in APIS"
+
+
 def main():
     logging.info("Starting tests...")
     test_find_shared_libraries()
     test_export_fetcher()
     test_lib_coverage()
     test_upload_coverage_data()
+    test_docgen_apidoc()
     logging.info("All tests completed successfully")
 
 

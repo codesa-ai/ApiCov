@@ -15,6 +15,9 @@ inputs:
   api_key:
     description: 'API key for uploading coverage data to the endpoint'
     required: true
+  doxygen_path:
+    description: 'Path to the Doxygen HTML files (optional)'
+    required: false
 
 runs:
   using: "composite"
@@ -34,14 +37,19 @@ runs:
         echo "Debug: root_path = ${{ inputs.root_path }}"
         echo "Debug: api_key = ${{ inputs.api_key != '' && '***' || 'not set' }}"
         echo "Debug: install_path = ${{ inputs.install_path != '' && inputs.install_path || 'not set' }}"
+        echo "Debug: doxygen_path = ${{ inputs.doxygen_path != '' && inputs.doxygen_path || 'not set' }}"
         echo "Debug: GITHUB_ACTION_PATH = $GITHUB_ACTION_PATH"
       shell: bash
 
     - name: Run APICov
       run: |
         echo "Debug: Constructing command..."
-        if [ -n "${{ inputs.install_path }}" ]; then
-          CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\" \"${{ inputs.install_path }}\""
+        if [ -n "${{ inputs.install_path }}" ] && [ -n "${{ inputs.doxygen_path }}" ]; then
+          CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\" --install_dir \"${{ inputs.install_path }}\" --doxygen_path \"${{ inputs.doxygen_path }}\""
+        elif [ -n "${{ inputs.install_path }}" ]; then
+          CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\" --install_dir \"${{ inputs.install_path }}\""
+        elif [ -n "${{ inputs.doxygen_path }}" ]; then
+          CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\" --doxygen_path \"${{ inputs.doxygen_path }}\""
         else
           CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\""
         fi
