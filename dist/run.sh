@@ -7,24 +7,31 @@ echo "Debug: Script directory: $SCRIPT_DIR"
 echo "Debug: Argument 1 (root_path): $1"
 echo "Debug: Argument 2 (api_key): $2"
 echo "Debug: Argument 3 (install_path): $3"
+echo "Debug: Argument 4 (doxygen_path): $4"
 
 # Check if the apicov binary exists in the same directory
 if [[ -f "$SCRIPT_DIR/apicov" ]]; then
   echo "Debug: Found apicov binary at: $SCRIPT_DIR/apicov"
-  
+
   # Construct the command based on number of arguments
-  if [ -n "$3" ]; then
+  if [ -n "$3" ] && [ -n "$4" ]; then
+    echo "Debug: Using install_dir: $3 and doxygen_path: $4"
+    CMD="$SCRIPT_DIR/apicov \"$1\" \"$2\" --install_dir \"$3\" --doxygen_path \"$4\""
+  elif [ -n "$3" ]; then
     echo "Debug: Using install_dir: $3"
     CMD="$SCRIPT_DIR/apicov \"$1\" \"$2\" --install_dir \"$3\""
+  elif [ -n "$4" ]; then
+    echo "Debug: Using doxygen_path: $4"
+    CMD="$SCRIPT_DIR/apicov \"$1\" \"$2\" --doxygen_path \"$4\""
   else
-    echo "Debug: No install_dir provided"
+    echo "Debug: No install_dir or doxygen_path provided"
     CMD="$SCRIPT_DIR/apicov \"$1\" \"$2\""
   fi
-  
+
   echo "Debug: Full command to be executed: $CMD"
   # Run the apicov binary with the provided arguments
   eval "$CMD"
 else
   echo "Error: apicov binary not found in $SCRIPT_DIR"
   exit 1
-fi 
+fi
