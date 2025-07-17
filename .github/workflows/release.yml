@@ -48,9 +48,12 @@ jobs:
             --hidden-import=modules \
             --hidden-import=requests \
             --hidden-import=bs4 \
+            --hidden-import=bs4.builder._lxml \
             --hidden-import=lxml \
+            --hidden-import=lxml.etree \
+            --hidden-import=lxml._elementpath \
             --add-data "src/modules:modules" \
-            src/apicov.py
+            src/apicov.py            
           # Ensure binary is executable
           chmod +x dist/apicov
           # Save binary location
@@ -74,19 +77,19 @@ jobs:
           echo 'if [[ -f "$SCRIPT_DIR/apicov" ]]; then' >> dist/run.sh
           echo '  echo "Debug: Found apicov binary at: $SCRIPT_DIR/apicov"' >> dist/run.sh
           echo '' >> dist/run.sh
-          echo '  # Construct the command based on number of arguments' >> dist/run.sh
-          echo '  if [ -n "$3" ] && [ -n "$4" ]; then' >> dist/run.sh
+          echo '  # Require install_dir (argument 3)' >> dist/run.sh
+          echo '  if [ -z "$3" ]; then' >> dist/run.sh
+          echo '    echo "Error: install_dir (argument 3) is required."' >> dist/run.sh
+          echo '    echo "Usage: $0 <root_path> <api_key> <install_dir> [doxygen_path]"' >> dist/run.sh
+          echo '    exit 1' >> dist/run.sh
+          echo '  fi' >> dist/run.sh
+          echo '' >> dist/run.sh
+          echo '  if [ -n "$4" ]; then' >> dist/run.sh
           echo '    echo "Debug: Using install_dir: $3 and doxygen_path: $4"' >> dist/run.sh
           echo '    CMD="$SCRIPT_DIR/apicov \"$1\" \"$2\" --install_dir \"$3\" --doxygen_path \"$4\""' >> dist/run.sh
-          echo '  elif [ -n "$3" ]; then' >> dist/run.sh
+          echo '  else' >> dist/run.sh
           echo '    echo "Debug: Using install_dir: $3"' >> dist/run.sh
           echo '    CMD="$SCRIPT_DIR/apicov \"$1\" \"$2\" --install_dir \"$3\""' >> dist/run.sh
-          echo '  elif [ -n "$4" ]; then' >> dist/run.sh
-          echo '    echo "Debug: Using doxygen_path: $4"' >> dist/run.sh
-          echo '    CMD="$SCRIPT_DIR/apicov \"$1\" \"$2\" --doxygen_path \"$4\""' >> dist/run.sh
-          echo '  else' >> dist/run.sh
-          echo '    echo "Debug: No install_dir or doxygen_path provided"' >> dist/run.sh
-          echo '    CMD="$SCRIPT_DIR/apicov \"$1\" \"$2\""' >> dist/run.sh
           echo '  fi' >> dist/run.sh
           echo '' >> dist/run.sh
           echo '  echo "Debug: Full command to be executed: $CMD"' >> dist/run.sh
@@ -191,7 +194,7 @@ jobs:
           inputs:
             install_path:
               description: 'The directory where the build is installed'
-              required: false
+              required: true
             root_path:
               description: 'The directory where the repo is cloned'
               required: true
@@ -227,14 +230,15 @@ jobs:
               - name: Run APICov
                 run: |
                   echo "Debug: Constructing command..."
-                  if [ -n "${{ inputs.install_path }}" ] && [ -n "${{ inputs.doxygen_path }}" ]; then
+                  if [ -z "${{ inputs.install_path }}" ]; then
+                    echo "Error: install_path (argument 3) is required."
+                    echo "Usage: run.sh <root_path> <api_key> <install_path> [doxygen_path]"
+                    exit 1
+                  fi
+                  if [ -n "${{ inputs.doxygen_path }}" ]; then
                     CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\" \"${{ inputs.install_path }}\" \"${{ inputs.doxygen_path }}\""
-                  elif [ -n "${{ inputs.install_path }}" ]; then
-                    CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\" \"${{ inputs.install_path }}\""
-                  elif [ -n "${{ inputs.doxygen_path }}" ]; then
-                    CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\" \"\" \"${{ inputs.doxygen_path }}\""
                   else
-                    CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\""
+                    CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\" \"${{ inputs.install_path }}\""
                   fi
                   echo "Debug: Full command: $CMD"
                   eval "$CMD"
