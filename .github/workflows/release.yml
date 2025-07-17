@@ -57,6 +57,7 @@ jobs:
             --hidden-import=lxml \
             --hidden-import=lxml.etree \
             --add-data "src/modules:modules" \
+            --collect-submodules bs4 \
             src/apicov.py            
           # Ensure binary is executable
           chmod +x dist/apicov
