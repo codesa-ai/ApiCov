@@ -2,6 +2,8 @@ import argparse
 import json
 import os
 import requests
+import bs4
+import lxml
 from modules.ExportFetcher import ExportFetcher
 from modules.Utils import find_shared_libraries
 from modules.Coverage import LibCoverage
@@ -32,6 +34,7 @@ def main():
     parser.add_argument(
         "--install_dir",
         type=str,
+        required=True,
         help="Path to where the exported header files are installed",
     )
     parser.add_argument(

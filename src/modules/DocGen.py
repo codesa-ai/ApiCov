@@ -1,7 +1,5 @@
 import os
 import json
-import bs4
-import lxml
 from typing import List, Dict, Optional
 from pathlib import Path
 from bs4 import BeautifulSoup
