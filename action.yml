@@ -54,6 +54,7 @@ runs:
           CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\""
         fi
         echo "Debug: Full command: $CMD"
+        chmod +x $GITHUB_ACTION_PATH/dist/run.sh
         eval "$CMD"
       shell: bash
 
