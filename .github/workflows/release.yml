@@ -35,6 +35,12 @@ jobs:
           source .venv/bin/activate
           uv pip install -e .
 
+      - name: Install dependencies
+        run: |
+          source .venv/bin/activate
+          pip install -e .
+          pip install beautifulsoup4 lxml
+
       - name: Build binary
         id: build
         run: |
@@ -44,14 +50,12 @@ jobs:
             --strip \
             --noconfirm \
             --add-binary "/usr/lib/x86_64-linux-gnu/libm.so.6:." \
-            --hidden-import=gcov \
             --hidden-import=modules \
             --hidden-import=requests \
             --hidden-import=bs4 \
             --hidden-import=bs4.builder._lxml \
             --hidden-import=lxml \
             --hidden-import=lxml.etree \
-            --hidden-import=lxml._elementpath \
             --add-data "src/modules:modules" \
             src/apicov.py            
           # Ensure binary is executable
