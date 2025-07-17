@@ -30,16 +30,17 @@ def main():
     parser.add_argument("project_dir", type=str, help="Path to the root directory")
     parser.add_argument("api_key", type=str, help="API key for uploading coverage data")
     parser.add_argument(
+        "--install_dir",
+        type=str,
+        help="Path to where the exported header files are installed",
+    )
+    parser.add_argument(
         "--doxygen_path",
         type=str,
         default=None,
         help="Path to the Doxygen HTML files (optional)",
     )
-    parser.add_argument(
-        "--install_dir",
-        type=str,
-        help="Path to where the exported header files are installed",
-    )
+
 
     args = parser.parse_args()
 
