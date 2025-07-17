@@ -25,7 +25,22 @@ test:
 
 # Build binary
 build:
-  . .venv/bin/activate && .venv/bin/python -m PyInstaller --onefile --python-option="--enable-shared" src/apicov.py
+  . .venv/bin/activate && .venv/bin/python -m PyInstaller --onefile \
+  --clean \
+  --strip \
+  --noconfirm \
+  --add-binary "/usr/lib/x86_64-linux-gnu/libm.so.6:." \
+  --hidden-import=gcov \
+  --hidden-import=modules \
+  --hidden-import=requests \
+  --hidden-import=bs4 \
+  --hidden-import=bs4.builder._lxml \
+  --hidden-import=lxml \
+  --hidden-import=lxml.etree \
+  --hidden-import=lxml._elementpath \
+  --python-option="--enable-shared" \
+  --add-data "src/modules:modules" \
+  src/apicov.py
 
 # reformat the code with Ruff
 format:
