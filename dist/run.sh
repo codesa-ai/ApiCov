@@ -12,8 +12,8 @@ echo "Debug: Argument 4 (doxygen_path): $4"
 # Check if the apicov binary exists in the same directory
 if [[ -f "$SCRIPT_DIR/apicov" ]]; then
   echo "Debug: Found apicov binary at: $SCRIPT_DIR/apicov"
-  
-  # Construct the command based on number of arguments
+
+  # Require install_dir (argument 3)
   if [ -z "$3" ]; then
     echo "Error: install_dir (argument 3) is required."
     echo "Usage: $0 <root_path> <api_key> <install_dir> [doxygen_path]"
@@ -27,11 +27,11 @@ if [[ -f "$SCRIPT_DIR/apicov" ]]; then
     echo "Debug: Using install_dir: $3"
     CMD="$SCRIPT_DIR/apicov \"$1\" \"$2\" --install_dir \"$3\""
   fi
-  
+
   echo "Debug: Full command to be executed: $CMD"
   # Run the apicov binary with the provided arguments
   eval "$CMD"
 else
   echo "Error: apicov binary not found in $SCRIPT_DIR"
   exit 1
-fi 
+fi
