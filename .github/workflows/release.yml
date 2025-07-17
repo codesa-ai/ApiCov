@@ -48,9 +48,14 @@ jobs:
         id: build
         run: |
           source .venv/bin/activate
-          # Clean any prior build artifacts
+          echo "✅ Checking current directory and files"
+          pwd
+          ls -R
+      
+          echo "✅ Cleaning previous builds"
           rm -rf build/ dist/ __pycache__ .cache/pyinstaller
-
+      
+          echo "✅ Running PyInstaller"          
           pyinstaller --onefile \
             --clean \
             --strip \
@@ -67,7 +72,6 @@ jobs:
             --collect-data bs4 \
             --collect-data lxml \             
             --add-data "src/modules:modules" \
-           
             src/apicov.py            
           # Ensure binary is executable
           chmod +x dist/apicov
