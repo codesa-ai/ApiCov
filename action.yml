@@ -45,11 +45,9 @@ runs:
       run: |
         echo "Debug: Constructing command..."
         if [ -n "${{ inputs.install_path }}" ] && [ -n "${{ inputs.doxygen_path }}" ]; then
-          CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\" --install_dir \"${{ inputs.install_path }}\" --doxygen_path \"${{ inputs.doxygen_path }}\""
+          CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\" \"${{ inputs.install_path }}\" \"${{ inputs.doxygen_path }}\""
         elif [ -n "${{ inputs.install_path }}" ]; then
-          CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\" --install_dir \"${{ inputs.install_path }}\""
-        elif [ -n "${{ inputs.doxygen_path }}" ]; then
-          CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\" --doxygen_path \"${{ inputs.doxygen_path }}\""
+          CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\" \"${{ inputs.install_path }}\""
         else
           CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\""
         fi
