@@ -32,8 +32,6 @@ jobs:
       - name: Create virtual environment
         run: |
           uv venv .venv
-          source .venv/bin/activate
-          uv pip install -e .
 
       - name: Install dependencies
         run: |
@@ -41,10 +39,18 @@ jobs:
           pip install -e .
           pip install beautifulsoup4 lxml
 
+      - name: Confirm dependencies were installed
+        run: |
+          pip show beautifulsoup4
+          pip show lxml
+
       - name: Build binary
         id: build
         run: |
           source .venv/bin/activate
+          # Clean any prior build artifacts
+          rm -rf build/ dist/ __pycache__ .cache/pyinstaller
+
           pyinstaller --onefile \
             --clean \
             --strip \
@@ -56,8 +62,12 @@ jobs:
             --hidden-import=bs4.builder._lxml \
             --hidden-import=lxml \
             --hidden-import=lxml.etree \
-            --add-data "src/modules:modules" \
             --collect-submodules bs4 \
+            --collect-submodules lxml \
+            --collect-data bs4 \
+            --collect-data lxml \             
+            --add-data "src/modules:modules" \
+           
             src/apicov.py            
           # Ensure binary is executable
           chmod +x dist/apicov
