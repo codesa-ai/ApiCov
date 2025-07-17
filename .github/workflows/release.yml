@@ -71,8 +71,7 @@ jobs:
             --collect-submodules lxml \
             --collect-data bs4 \
             --collect-data lxml \             
-            --add-data "src/modules:modules" \
-            src/apicov.py            
+            --add-data "src/modules:modules" src/apicov.py            
           # Ensure binary is executable
           chmod +x dist/apicov
           # Save binary location
