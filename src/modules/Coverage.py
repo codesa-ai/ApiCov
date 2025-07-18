@@ -23,6 +23,7 @@ class LibCoverage:
         _root_dir (str): Absolute path to the library root directory
         api_sizes (Dict[str, int]): Dictionary mapping API names to total line counts
         _fn_sizes (Dict[str, tuple]): Cache of function coverage data (covered_lines, total_lines)
+        gcov_files (List[str]): List of all generated .gcov file paths
     
     Example:
         # Initialize with API list and library path
@@ -57,6 +58,7 @@ class LibCoverage:
         self._root_dir = os.path.abspath(lib_path)
         self.api_sizes = {}
         self._fn_sizes = {}
+        self.gcov_files = []  # Store all generated .gcov files
 
     def get_fn_size_and_cov(self, fn):
         """
@@ -229,11 +231,12 @@ class LibCoverage:
 
     def run_gcov_on_gcno_files(self):
         """
-        Run gcov on all .gcno files to generate coverage logs.
+        Run gcov on all .gcno files to generate coverage logs and .gcov files.
         
         This method processes all .gcno files found in the library directory
-        and runs gcov on each one to generate corresponding .gcov_log files.
-        The gcov output is filtered to remove irrelevant error messages.
+        and runs gcov on each one to generate corresponding .gcov_log files
+        and .gcov files. The gcov output is filtered to remove irrelevant 
+        error messages. All generated .gcov files are stored in self.gcov_files.
         """
         gcno_files = self.get_gcno_files()
         for file in gcno_files:
@@ -248,3 +251,11 @@ class LibCoverage:
             p = subprocess.run(cmd, cwd=file_dir, capture_output=True, text=True)
             with open(log_file, "w") as fh:
                 fh.write(self.filter_errors(p.stdout))
+            
+            # Store all generated .gcov files for this .gcno file
+            for gcov_file in os.listdir(file_dir):
+                if gcov_file.endswith(".gcov"):
+                    gcov_path = os.path.join(file_dir, gcov_file)
+                    if gcov_path not in self.gcov_files:
+                        self.gcov_files.append(gcov_path)
+                        logging.debug("Added .gcov file: %s", gcov_path)

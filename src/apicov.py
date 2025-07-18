@@ -4,8 +4,10 @@ import os
 import requests
 import bs4
 import lxml
+import zipfile
+
 from modules.ExportFetcher import ExportFetcher
-from modules.Utils import find_shared_libraries
+from modules.Utils import find_shared_libraries, compress_gcov_files
 from modules.Coverage import LibCoverage
 from modules.logging_config import logging
 from modules.DocGen import DocGen
@@ -28,6 +30,37 @@ def upload_coverage_data(coverage_data, api_key):
         return False
 
 
+def create_gcov_archive(coverage_instance, output_path=None, archive_name="gcov_files.zip"):
+    """
+    Create a compressed zip archive of all collected .gcov files for upload.
+    
+    This function uses the Utils.compress_gcov_files function to create a zip
+    archive containing all the .gcov files that were generated during
+    coverage analysis. The archive can be uploaded to a server for
+    further processing or storage.
+    
+    Args:
+        coverage_instance (LibCoverage): LibCoverage instance containing gcov_files
+        output_path (str, optional): Directory where the zip file should be created.
+                                    If None, uses a temporary directory.
+        archive_name (str, optional): Name of the zip archive file. 
+                                    Defaults to "gcov_files.zip".
+    
+    Returns:
+        str: Path to the created zip archive file, or None if no .gcov files exist
+        
+    Raises:
+        FileNotFoundError: If any of the .gcov files don't exist
+        OSError: If there are issues creating the zip file
+    """
+    if not coverage_instance.gcov_files:
+        logging.warning("No .gcov files available for archiving. Run run_gcov_on_gcno_files() first.")
+        return None
+    
+    logging.info(f"Creating gcov archive with {len(coverage_instance.gcov_files)} files")
+    return compress_gcov_files(coverage_instance.gcov_files, output_path, archive_name)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Code SA API Coverage Tool")
     parser.add_argument("project_dir", type=str, help="Path to the root directory")
@@ -44,7 +77,6 @@ def main():
         default=None,
         help="Path to the Doxygen HTML files (optional)",
     )
-
 
     args = parser.parse_args()
 
@@ -118,6 +150,14 @@ def main():
 
     if no_doc_apis:
         logging.error("Failed to find documentation for %d APIs: %s", len(no_doc_apis), no_doc_apis)
+
+    # Create gcov archive for upload
+    logging.info("Creating gcov archive for upload")
+    archive_path = create_gcov_archive(entry_cov)
+    if archive_path:
+        logging.info(f"Gcov archive created successfully: {archive_path}")
+    else:
+        logging.warning("Failed to create gcov archive")
 
     # Upload coverage data if API key is provided
     if args.api_key:
