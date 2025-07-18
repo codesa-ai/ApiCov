@@ -9,13 +9,11 @@ class LibCoverage:
     
     This class provides functionality to extract and analyze code coverage information
     for library functions using gcov-generated data files (.gcno and .gcov_log files).
-    It can calculate both entry-point coverage (direct function coverage) and full
-    coverage including all callees in the call graph.
+    It calculates entry-point coverage (direct function coverage) for individual APIs.
     
     The class supports:
     - Parsing gcov log files to extract coverage percentages and line counts
     - Calculating coverage for individual functions
-    - Computing full API coverage including all functions in the call graph
     - Handling special cases like SDL libraries that use macro wrappers
     - Running gcov on .gcno files to generate coverage logs
     
@@ -34,9 +32,8 @@ class LibCoverage:
         # Generate coverage logs from .gcno files
         coverage.run_gcov_on_gcno_files()
         
-        # Calculate full coverage including call graph
-        callgraph = load_callgraph_from_file()
-        coverage.populate_full_api_cov(callgraph)
+        # Calculate entry-point coverage for all APIs
+        coverage.populate_entry_api_cov()
         
         # Get results
         print(coverage.api_coverage)
@@ -126,90 +123,6 @@ class LibCoverage:
 
         return covered_lines, final_size
 
-    def dfs(self, function, callgraph, all_callees):
-        """
-        Perform depth-first search to find all callees in the call graph.
-        
-        This method recursively traverses the call graph starting from a given
-        function to find all functions that are called (directly or indirectly)
-        by the starting function.
-        
-        Args:
-            function (str): Starting function name for the DFS traversal
-            callgraph (Dict[str, List[str]]): Call graph mapping functions to their callees
-            all_callees (List[str]): List to accumulate all discovered callees
-        """
-        all_callees.append(function)
-        for callee in callgraph[function]:
-            if callee not in all_callees:
-                self.dfs(callee, callgraph, all_callees)
-
-    def get_api_callgraph(self, api, callgraph):
-        """
-        Get all functions in the call graph for a given API.
-        
-        This method uses depth-first search to find all functions that are
-        called (directly or indirectly) by the specified API function.
-        
-        Args:
-            api (str): API function name to find callees for
-            callgraph (Dict[str, List[str]]): Call graph mapping functions to their callees
-            
-        Returns:
-            List[str]: List of all functions in the call graph for the given API
-        """
-        all_callees = []
-        if api in callgraph:
-            self.dfs(api, callgraph, all_callees)
-
-        return all_callees
-
-    def get_full_api_cov(self, api, callees):
-        """
-        Calculate full coverage for an API including all its callees.
-        
-        This method computes the total coverage for an API by summing up the
-        coverage of all functions in its call graph (the API itself plus all
-        functions it calls directly or indirectly).
-        
-        Args:
-            api (str): API function name
-            callees (List[str]): List of all functions in the API's call graph
-        """
-        total_covered_lines = 0
-        total_size = 0
-        for call in callees:
-            if call not in self._fn_sizes:
-                covered_lines, size = self.get_fn_size_and_cov(call)
-                self._fn_sizes[call] = (covered_lines, size)
-            else:
-                covered_lines = self._fn_sizes[call][0]
-                size = self._fn_sizes[call][1]
-            total_covered_lines += covered_lines
-            total_size += size
-
-        try:
-            float_cov = (total_covered_lines / total_size) * 100
-        except ZeroDivisionError:
-            logging.warning("Error - Zero division error for API: %s", api)
-            # sys.exit()
-            float_cov = 0.0
-
-        if api.endswith("_REAL"):
-            api = api.replace("_REAL", "")
-        if api in self.api_coverage:
-            new_val = float_cov
-            if new_val > self.api_coverage[api]:
-                self.api_coverage[api] = new_val
-        else:
-            self.api_coverage[api] = float_cov
-
-        if api in self.api_sizes:
-            if self.api_sizes[api] < total_size:
-                self.api_sizes[api] = total_size
-        else:
-            self.api_sizes[api] = total_size
-
     def get_api_coverage(self, api):
         """
         Calculate entry-point coverage for a single API function.
@@ -256,25 +169,6 @@ class LibCoverage:
                     self.api_sizes[api] = size
             # if "No executable lines" in line:
             #     return
-
-    def populate_full_api_cov(self, callgraph, sdl=False):
-        """
-        Calculate full coverage for all APIs including their call graphs.
-        
-        This method processes all APIs in the instance and calculates their
-        full coverage by including all functions in their respective call graphs.
-        It handles special cases for SDL libraries that use macro wrappers.
-        
-        Args:
-            callgraph (Dict[str, List[str]]): Call graph mapping functions to their callees
-            sdl (bool): Whether this is an SDL library (uses macro wrappers with _REAL suffix)
-        """
-        for api in self._apis:
-            if sdl:
-                callees = self.get_api_callgraph(api + "_REAL", callgraph)
-                self.get_full_api_cov(api + "_REAL", callees)
-            callees = self.get_api_callgraph(api, callgraph)
-            self.get_full_api_cov(api, callees)
 
     def populate_entry_api_cov(self, sdl=False):
         """
