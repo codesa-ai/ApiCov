@@ -247,7 +247,7 @@ class LibCoverage:
                 continue
             logging.debug("Processing gcno file: %s", file)
             log_file = file.replace(".gcno", ".gcov_log")
-            cmd = ["gcov", "-f", filename]
+            cmd = ["gcov", "-l", "-f", filename]  # Added -l option to include source code
             p = subprocess.run(cmd, cwd=file_dir, capture_output=True, text=True)
             with open(log_file, "w") as fh:
                 fh.write(self.filter_errors(p.stdout))

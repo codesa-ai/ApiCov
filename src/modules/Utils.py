@@ -76,7 +76,7 @@ def compress_gcov_files(gcov_files, output_path=None, archive_name="gcov_files.z
     
     # Determine output directory
     if output_path is None:
-        output_path = tempfile.gettempdir()
+        output_path = os.getcwd()  # Use current working directory instead of temp directory
     
     # Create output directory if it doesn't exist
     os.makedirs(output_path, exist_ok=True)
