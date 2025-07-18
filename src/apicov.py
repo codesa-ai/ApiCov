@@ -11,6 +11,7 @@ from modules.logging_config import logging
 from modules.DocGen import DocGen
 
 
+
 def upload_coverage_data(coverage_data, api_key):
     """Upload coverage data to the endpoint."""
     url = "https://callback-373812666155.europe-west2.run.app/upload"
@@ -48,7 +49,8 @@ def main():
     args = parser.parse_args()
 
     logging.debug("Looking for shared libraries in the project directory")
-    shared_libs = find_shared_libraries(args.project_dir)
+    project_dir = os.path.abspath(os.path.expanduser(args.project_dir))
+    shared_libs = find_shared_libraries(project_dir)
 
     logging.info("Shared libraries found: %s", shared_libs)
 
@@ -59,17 +61,18 @@ def main():
 
     logging.info("Total number of symbols found: %d", len(lib_exports.symbols))
 
-    logging.debug("Filtering non-API exports")
-    lib_exports.filter_non_apis(args.install_dir)
+    logging.info("Filtering non-API exports")
+    install_dir = os.path.abspath(os.path.expanduser(args.install_dir))
+    lib_exports.filter_non_apis(install_dir)
 
     logging.info("Total number of APIs found: %d", len(lib_exports.apis))
     json_data = {"apis": lib_exports.apis}
-    api_file = os.path.join(args.project_dir, "apis.json")
+    api_file = os.path.join(project_dir, "apis.json")
     logging.debug("Writing APIs to:  %s", api_file)
     with open(api_file, "w") as fh:
         json.dump(json_data, fh)
 
-    entry_cov = LibCoverage(lib_exports.apis, args.project_dir)
+    entry_cov = LibCoverage(lib_exports.apis, project_dir)
     logging.info("Running gcov to identify API sizes and coverage")
     entry_cov.run_gcov_on_gcno_files()
     logging.info("Populate API sizes and coverage")
@@ -78,7 +81,8 @@ def main():
 
     if args.doxygen_path:
         logging.info("Generating API documentation")
-        doc_gen = DocGen(args.doxygen_path)
+        doxygen_path = os.path.abspath(os.path.expanduser(args.doxygen_path))
+        doc_gen = DocGen(doxygen_path, xml=True)
         apidoc = doc_gen.generate_apidoc(lib_exports.apis)
     else:
         logging.info("No Doxygen path provided, skipping API documentation generation")
