@@ -1,3 +1,4 @@
+import modules.logging_config
 import argparse
 import json
 import os
