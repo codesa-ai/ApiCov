@@ -31,7 +31,7 @@ def upload_coverage_data(coverage_data, api_key):
         return False
 
 
-def create_gcov_archive(coverage_instance, output_path=None, archive_name="gcov_files.zip"):
+def create_gcov_archive(coverage_instance: LibCoverage, output_path: str | None = None, archive_name: str = "gcov_files.zip") -> str | None:
     """
     Create a compressed zip archive of all collected .gcov files for upload.
     
