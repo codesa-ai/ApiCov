@@ -73,7 +73,7 @@ class DocGen:
             self.xml_files = self._find_xml_files()
         self.api_docs = {}
     
-    def _find_xml_files(self):
+    def _find_xml_files(self) -> List[str]:
         """
         Find all XML files in the Doxygen documentation directory.
         """
@@ -88,7 +88,7 @@ class DocGen:
 
         return xml_files
 
-    def _convert_html_file_to_xml(self, input_path, output_path):
+    def _convert_html_file_to_xml(self, input_path: str, output_path: str) -> None:
         """
         Converts a single HTML file to XML using BeautifulSoup.
         """
@@ -107,7 +107,7 @@ class DocGen:
             f.write(soup.prettify(formatter="minimal"))
         self.xml_files.append(output_path)
 
-    def convert_html_directory_to_xml(self, input_dir, output_dir):
+    def convert_html_directory_to_xml(self, input_dir: str, output_dir: str) -> None:
         """
         Walks through input_dir recursively, converts all .html/.htm files to XML,
         and writes them to the same relative path in output_dir.
@@ -130,7 +130,7 @@ class DocGen:
                     print(f"Converting: {input_path} → {output_path}")
                     self._convert_html_file_to_xml(input_path, output_path) 
 
-    def _read_proto(self, member):
+    def _read_proto(self, member: ET.Element) -> str:
         proto = []
         proto.append(member.find("definition").text)
 
@@ -138,7 +138,7 @@ class DocGen:
     
         return " ".join(proto)
 
-    def _read_details(self, member):
+    def _read_details(self, member: ET.Element) -> str:
         details = []
         paras = member.findall("para")
 
@@ -167,7 +167,7 @@ class DocGen:
 
         return "\n".join(details)
 
-    def _read_proto(self, member):
+    def _read_proto(self, member: ET.Element) -> str:
         proto = []
         proto.append(member.find("definition").text)
 
@@ -175,7 +175,7 @@ class DocGen:
         
         return " ".join(proto)
 
-    def _read_details(self, member):
+    def _read_details(self, member: ET.Element) -> str:
         details = []
         paras = member.findall("para")
 
@@ -204,7 +204,7 @@ class DocGen:
 
         return "\n".join(details)
 
-    def extract_all_paras(self, parent):
+    def extract_all_paras(self, parent: ET.Element) -> str:
         """
         Concatenate all <para> elements under the given parent element.
         
@@ -221,11 +221,11 @@ class DocGen:
         if parent is None:
             return ""
         return "\n".join(
-            "".join(para.itertext()).strip()
+            " ".join(para.itertext()).strip()
             for para in parent.findall("para")
         )
 
-    def _extract_api_documentation_xml(self, apis):
+    def _extract_api_documentation_xml(self, apis: List[str]) -> Dict[str, str]:
         """
         Extract documentation for a list of APIs from XML files.
         
@@ -304,9 +304,11 @@ class DocGen:
         logging.info(f"DEBUG: Final result - found documentation for {len(api_docs)} APIs")
         logging.info(f"DEBUG: APIs with documentation: {list(api_docs.keys())}")
         return api_docs
-    def _extract_api_documentation_html_xml(self, apis):
+
+    def _extract_api_documentation_html_xml(self, apis: List[str]) -> Dict[str, str]:
         """
-        Extract documentation for a list of APIs from HTML-like XML files (from BeautifulSoup).
+        Extract documentation for a list of APIs from Doxygen HTML-like XML files (from BeautifulSoup).
+        This version is tailored for Doxygen HTML structure: function prototypes and docs are in <tr> pairs.
         """
         from bs4 import BeautifulSoup
         api_docs = {}
@@ -314,55 +316,23 @@ class DocGen:
             with open(xml_file, 'r', encoding='utf-8') as f:
                 soup = BeautifulSoup(f, 'xml')
 
-            # Get function name from <h1>
-            h1 = soup.find('h1')
-            if not h1:
-                continue
-            api_name = h1.get_text(strip=True)
-            if api_name not in apis:
-                continue
-
-            # Get prototype from <pre><b>...</b></pre>
-            proto = ''
-            pre = soup.find('pre')
-            if pre and pre.b:
-                proto = pre.b.get_text(strip=True)
-
-            # Get main description from first <p> after <h1>
-            desc = ''
-            p_tags = h1.find_all_next('p')
-            if p_tags:
-                desc = p_tags[0].get_text(" ", strip=True)
-
-            # Get parameters from <h3>Parameters</h3> and following <dl>
-            params = []
-            h3_params = soup.find('h3', string=lambda s: s and 'Parameter' in s)
-            if h3_params:
-                dl = h3_params.find_next('dl')
-                if dl:
-                    for dt, dd in zip(dl.find_all('dt'), dl.find_all('dd')):
-                        param_name = dt.get_text(" ", strip=True)
-                        param_desc = dd.get_text(" ", strip=True)
-                        params.append(f"{param_name}: {param_desc}")
-
-            # Get return values from <h3>Return Values</h3> and following <dl>
-            returns = []
-            h3_ret = soup.find('h3', string=lambda s: s and 'Return Value' in s)
-            if h3_ret:
-                dl = h3_ret.find_next('dl')
-                if dl:
-                    for dt, dd in zip(dl.find_all('dt'), dl.find_all('dd')):
-                        ret_name = dt.get_text(" ", strip=True)
-                        ret_desc = dd.get_text(" ", strip=True)
-                        returns.append(f"{ret_name}: {ret_desc}")
-
-            doc_string = f"{proto}\n\n{desc}"
-            if params:
-                doc_string += "\n\nParameters:\n" + "\n".join(params)
-            if returns:
-                doc_string += "\n\nReturn Values:\n" + "\n".join(returns)
-
-            api_docs[api_name] = doc_string.strip()
+            # Find all function rows by class pattern
+            for api in apis:
+                # Doxygen uses a class like memitem:<hash> and memdesc:<hash> for each function
+                # Find the <tr> with <a> tag whose text matches the API name
+                for tr in soup.find_all("tr"):
+                    a_tag = tr.find("a", class_="el")
+                    if a_tag and a_tag.text.strip() == api:
+                        # Prototype: combine all <td> text in this row
+                        proto = " ".join(td.get_text(" ", strip=True) for td in tr.find_all("td"))
+                        # Find the next sibling <tr> with class starting with "memdesc:"
+                        desc_tr = tr.find_next_sibling("tr")
+                        desc = ""
+                        if desc_tr and desc_tr.find("td", class_="mdescRight"):
+                            desc = desc_tr.find("td", class_="mdescRight").get_text(" ", strip=True)
+                        doc_string = f"{proto}\n{desc}".strip()
+                        api_docs[api] = doc_string
+                        break  # Stop after first match for this API
         return api_docs
     
     def generate_json(self, output_file: str) -> bool:
@@ -413,7 +383,7 @@ class DocGen:
             # Check which APIs are missing
             missing_apis = [api for api in api_list if api not in self.api_docs]
             if missing_apis:
-                logging.info(f"WARNING: Missing Documentation for APIs: {missing_apis}")
+                logging.warning(f"WARNING: Missing Documentation for APIs: {missing_apis}")
             
             logging.info(f"Extracted documentation for {len([k for k, v in self.api_docs.items() if v])} out of {len(api_list)} APIs")
             

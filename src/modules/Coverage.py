@@ -60,7 +60,7 @@ class LibCoverage:
         self._fn_sizes = {}
         self.gcov_files = []  # Store all generated .gcov files
 
-    def get_fn_size_and_cov(self, fn):
+    def get_fn_size_and_cov(self, fn: str) -> tuple[int, int]:
         """
         Extract coverage data for a specific function from gcov log files.
         
@@ -125,7 +125,7 @@ class LibCoverage:
 
         return covered_lines, final_size
 
-    def get_api_coverage(self, api):
+    def set_api_coverage(self, api: str) -> None:
         """
         Calculate entry-point coverage for a single API function.
         
@@ -172,7 +172,7 @@ class LibCoverage:
             # if "No executable lines" in line:
             #     return
 
-    def populate_entry_api_cov(self, sdl=False):
+    def populate_entry_api_cov(self, sdl: bool = False) -> None:
         """
         Calculate entry-point coverage for all APIs.
         
@@ -188,10 +188,10 @@ class LibCoverage:
         # to the api name
         for api in self._apis:
             if sdl:
-                self.get_api_coverage(api + "_REAL")
-            self.get_api_coverage(api)
+                self.set_api_coverage(api + "_REAL")
+            self.set_api_coverage(api)
 
-    def get_gcno_files(self):
+    def get_gcno_files(self) -> list[str]:
         """
         Find all .gcno files in the library directory.
         
@@ -208,7 +208,7 @@ class LibCoverage:
                     gcno_files.append(os.path.join(root, file))
         return gcno_files
 
-    def filter_errors(self, lines):
+    def filter_errors(self, lines: str) -> str:
         """
         Filter out common error messages from gcov output.
         
@@ -229,7 +229,7 @@ class LibCoverage:
             filtered_lines.append(line)
         return "\n".join(filtered_lines)
 
-    def run_gcov_on_gcno_files(self):
+    def run_gcov_on_gcno_files(self) -> None:
         """
         Run gcov on all .gcno files to generate coverage logs and .gcov files.
         

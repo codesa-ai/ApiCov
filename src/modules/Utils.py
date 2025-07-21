@@ -49,7 +49,7 @@ def find_shared_libraries(root_dir):
     return shared_libs
 
 
-def compress_gcov_files(gcov_files, output_path=None, archive_name="gcov_files.zip"):
+def compress_gcov_files(gcov_files: list[str], output_path: str | None = None, archive_name: str="gcov_files.zip") -> str:
     """
     Compress all .gcov files into a zip archive for upload.
     
@@ -60,7 +60,7 @@ def compress_gcov_files(gcov_files, output_path=None, archive_name="gcov_files.z
     Args:
         gcov_files (List[str]): List of paths to .gcov files to compress
         output_path (str, optional): Directory where the zip file should be created.
-                                    If None, uses a temporary directory.
+                                    If None, uses the current working directory.
         archive_name (str, optional): Name of the zip archive file. Defaults to "gcov_files.zip".
     
     Returns:
