@@ -8,12 +8,45 @@ from modules.logging_config import logging
 
 
 class ExportFetcher(object):
+    """
+    A class to extract and filter exported API symbols from shared libraries and header files.
+    
+    This class provides functionality to:
+    - Extract exported function symbols from shared libraries using nm and grep
+    - Filter out non-API symbols by searching for their presence in header files
+    - Identify function declarations in header files using regex
+    - Support various build systems for header discovery and installation
+    
+    Attributes:
+        symbols (List[str]): All discovered symbols from shared libraries
+        apis (List[str]): Filtered list of API symbols present in headers
+        headers (List[str]): List of header file paths found in the install directory
+    
+    Example:
+        fetcher = ExportFetcher()
+        fetcher.get_exports_from_lib("/path/to/libfoo.so")
+        fetcher.filter_non_apis("/path/to/install/include")
+        print(fetcher.apis)
+    
+    Dependencies:
+        - nm, grep: For extracting and filtering symbols from shared libraries
+        - subprocess: For running shell commands
+        - os, re: For file and regex operations
+    """
     def __init__(self):
         self.symbols = []
         self.apis = []
         self.headers = []
 
-    def grep_for_symbol(self, symbol, install_dir):
+    def grep_for_symbol(self, symbol: str, install_dir: str) -> None:
+        """
+        Search recursively for a given symbol in all header files (.h, .hpp, .hxx) within the specified install directory.
+        If the symbol is found in any header, it is added to the list of API symbols (self.apis).
+
+        Args:
+            symbol (str): The symbol name to search for.
+            install_dir (str): The root directory to search for header files.
+        """
         for root, _, files in os.walk(install_dir):
             for file in files:
                 if (
@@ -28,15 +61,29 @@ class ExportFetcher(object):
                     cmd = ["grep", "-rw", symbol, header]
                     result = subprocess.run(cmd, capture_output=True, text=True)
                     if result.returncode == 0:
-                        logging.debug("Adding Api: %s", symbol)
+                        logging.info("Adding Api: %s", symbol)
                         self.apis.append(symbol)
                         return
 
-    def filter_non_apis(self, install_dir):
+    def filter_non_apis(self, install_dir: str) -> None:
+        """
+        Filter the list of discovered symbols (self.symbols) to retain only those that are present in the header files
+        of the given install directory. Uses grep_for_symbol for each symbol.
+
+        Args:
+            install_dir (str): The root directory to search for header files.
+        """
         for symbol in self.symbols:
             self.grep_for_symbol(symbol, os.path.abspath(install_dir))
 
-    def find_functions_in_file(self, file_data):
+    def find_functions_in_file(self, file_data: str) -> None:
+        """
+        Use a regular expression to find C/C++ function declarations in the provided file data (as a string).
+        Adds any new function names found to the list of discovered symbols (self.symbols).
+
+        Args:
+            file_data (str): The contents of a header file.
+        """
         pattern = r"(?:\s*(static\s+|inline\s+|virtual\s+)?)?([\w\s*]+?)\s+([\w_]+)\s*\(([^)]*)\)\s*(?:const)?\s*(?:volatile)?\s*;"
         functions = re.compile(pattern, re.M)
         matches = functions.findall(file_data)
@@ -46,7 +93,14 @@ class ExportFetcher(object):
                 if function_name not in self.function_names:
                     self.symbols.append(function_name.strip())
 
-    def _add_functions(self, output):
+    def _add_functions(self, output: str) -> None:
+        """
+        Process the output (string) from a command or file, extracting function names (APIs) from each line and adding
+        them to the list of discovered symbols (self.symbols) if not already present.
+
+        Args:
+            output (str): Output containing function names, one per line.
+        """
         for line in output.split("\n"):
             api = line.split(":")[-1]
             if api == "":
@@ -54,28 +108,30 @@ class ExportFetcher(object):
             if api not in self.function_names:
                 self.symbols.append(api.strip())
 
-    def _add_symbol(self, symbol):
+    def _add_symbol(self, symbol: str) -> None:
+        """
+        Add a symbol to the list of discovered symbols (self.symbols) if it is not already present.
+
+        Args:
+            symbol (str): The symbol name to add.
+        """
         if symbol not in self.symbols:
             self.symbols.append(symbol)
 
-    def get_exports_from_lib(self, shared_lib):
+    def get_exports_from_lib(self, shared_lib: str) -> int:
         """
-        Extracts exported symbols from a shared library using the `nm` and `grep` commands.
+        Extract exported symbols from a shared library using the nm and grep commands. Filters for symbols of type
+        " T " (text section, i.e., functions), ignores C++ operators and certain mangled names, and adds discovered
+        symbols to self.symbols.
 
         Args:
-            shared_lib (str): The path to the shared library file.
+            shared_lib (str): Path to the shared library file.
 
         Returns:
-            str: The output from the `grep` command containing the filtered symbols.
+            int: The return code from the grep command.
 
         Raises:
-            subprocess.CalledProcessError: If either the `nm` or `grep` command fails.
-
-        Notes:
-            - This function uses the `nm` command to list symbols from the shared library.
-            - The `grep` command filters the symbols to include only those with a " T " type.
-            - C++ symbols are further processed to extract demangled names.
-            - Symbols containing "operator" or "mangle_path" are ignored.
+            subprocess.CalledProcessError: If the nm or grep command fails.
         """
         nm_command = ["nm", "-D", "--defined-only", shared_lib]
         grep_command = ["grep", " T "]
@@ -115,12 +171,14 @@ class ExportFetcher(object):
         # proc1.stdout.close()
         return proc2.returncode
 
-    def find_build_dir(self):
+    def find_build_dir(self) -> str:
         """
-        Finds the build directory within the project directory.
+        Attempt to locate the build directory within the project by checking common directory names (build, out, bin)
+        and by searching for build system files (CMakeCache.txt, build.ninja). Returns the path to the build directory
+        or the root directory if none is found.
 
         Returns:
-            str: The path to the build directory, or the root directory if no specific build directory is found.
+            str: Path to the build directory.
         """
         common_build_dirs = ["build", "out", "bin"]
         for build_dir in common_build_dirs:
@@ -135,7 +193,17 @@ class ExportFetcher(object):
 
         return self._root_dir
 
-    def get_install_headers(self, build_system):
+    def get_install_headers(self, build_system: str) -> None:
+        """
+        Run the appropriate dry-run install command for the given build system to discover which header files would be
+        installed. Populates self.headers with the paths of header files.
+
+        Args:
+            build_system (str): The build system in use (make, cmake, ninja, or meson).
+
+        Raises:
+            ValueError: If the build system is unsupported.
+        """
         build_dir = self.find_build_dir()
         if build_system in ["make", "cmake"]:
             cmd = ["make", "install", "-n"]
@@ -153,19 +221,20 @@ class ExportFetcher(object):
             return
 
         for line in result.stdout.split("\n"):
-            print(line)
             if line.endswith(".h") or line.endswith(".hpp") or line.endswith(".hxx"):
                 self.headers.append(line.strip())
 
-    def run_install_command(self, build_system):
+    def run_install_command(self, build_system: str) -> None:
         """
-        Runs the install command to ensure the installation happens in /usr/local.
+        Run the actual install command for the given build system, setting the DESTDIR environment variable to
+        /usr/local to control the installation location.
 
         Args:
-            build_system (str): The build system used (e.g., 'make', 'ninja', 'meson').
+            build_system (str): The build system in use (make, cmake, ninja, or meson).
 
         Raises:
             ValueError: If the build system is unsupported.
+            subprocess.CalledProcessError: If the install command fails.
         """
         build_dir = self.find_build_dir()
         env = os.environ.copy()
