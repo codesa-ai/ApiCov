@@ -15,14 +15,21 @@ from modules.DocGen import DocGen
 
 
 
-def upload_coverage_data(coverage_data, api_key):
-    """Upload coverage data to the endpoint."""
+def upload_data(coverage_data: dict, api_key: str, archive_path: str | None = None):
+    """Upload coverage data to the endpoint using multipart/form-data."""
     url = "https://callback-373812666155.europe-west2.run.app/upload"
-    headers = {"Content-Type": "application/json"}
-    payload = {"api_key": api_key, "coverage": coverage_data}
-
+    # Prepare multipart form data
+    files = {}
+    data = {
+        "api_key": api_key,
+        "coverage": json.dumps(coverage_data),
+    }
+    if archive_path:
+        files["coverage_files"] = (os.path.basename(archive_path), open(archive_path, "rb"), "application/gzip")
     try:
-        response = requests.post(url, headers=headers, json=payload)
+        response = requests.post(url, data=data, files=files if files else None)
+        if files:
+            files["coverage_files"][1].close()
         response.raise_for_status()
         logging.info("Successfully uploaded coverage data")
         return True
@@ -163,7 +170,7 @@ def main():
     # Upload coverage data if API key is provided
     if args.api_key:
         logging.info("Uploading data to endpoint")
-        upload_coverage_data(json_data, args.api_key)
+        upload_data(json_data, args.api_key, archive_path)
 
 
 if __name__ == "__main__":
