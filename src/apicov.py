@@ -26,16 +26,27 @@ def upload_data(coverage_data: dict, api_key: str, archive_path: str | None = No
     }
     if archive_path:
         files["coverage_files"] = (os.path.basename(archive_path), open(archive_path, "rb"), "application/gzip")
-    try:
-        response = requests.post(url, data=data, files=files if files else None)
-        if files:
+        try:
+            response = requests.post(url, data=data, files=files)
+            response.raise_for_status()
+            logging.info("Successfully uploaded coverage data")
+            return True
+        except requests.exceptions.RequestException as e:
+            logging.error("Failed to upload coverage data: %s", e)
+            return False
+        finally:
             files["coverage_files"][1].close()
-        response.raise_for_status()
-        logging.info("Successfully uploaded coverage data")
-        return True
-    except requests.exceptions.RequestException as e:
-        logging.error("Failed to upload coverage data: %s", e)
-        return False
+    else:
+        try:
+            response = requests.post(url, data=data, files=None)
+            response.raise_for_status()
+            logging.info("Successfully uploaded coverage data")
+            return True
+        except requests.exceptions.RequestException as e:
+            logging.error("Failed to upload coverage data: %s", e)
+            return False
+
+
 
 
 def create_gcov_archive(coverage_instance: LibCoverage, output_path: str | None = None, archive_name: str = "coverage_data.tgz") -> str | None:

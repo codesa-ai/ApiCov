@@ -1,6 +1,7 @@
 import os
 import zipfile
 import tempfile
+import tarfile
 from pathlib import Path
 from modules.logging_config import logging
 
@@ -54,7 +55,6 @@ def compress_gcov_files(gcov_files: list[str], output_path: str | None = None, a
     Compress all .gcov files into a tar.gz (.tgz) archive for upload.
     Only .tgz or .tar.gz extensions are supported.
     """
-    import tarfile
     if not gcov_files:
         logging.warning("No .gcov files provided for compression")
         return None
