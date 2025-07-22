@@ -15,44 +15,62 @@ from modules.DocGen import DocGen
 
 
 
-def upload_coverage_data(coverage_data, api_key):
-    """Upload coverage data to the endpoint."""
+def upload_data(coverage_data: dict, api_key: str, archive_path: str | None = None):
+    """Upload coverage data to the endpoint using multipart/form-data."""
     url = "https://callback-373812666155.europe-west2.run.app/upload"
-    headers = {"Content-Type": "application/json"}
-    payload = {"api_key": api_key, "coverage": coverage_data}
+    # Prepare multipart form data
+    files = {}
+    data = {
+        "api_key": api_key,
+        "coverage": json.dumps(coverage_data),
+    }
+    if archive_path:
+        files["coverage_files"] = (os.path.basename(archive_path), open(archive_path, "rb"), "application/gzip")
+        try:
+            response = requests.post(url, data=data, files=files)
+            response.raise_for_status()
+            logging.info("Successfully uploaded coverage data")
+            return True
+        except requests.exceptions.RequestException as e:
+            logging.error("Failed to upload coverage data: %s", e)
+            return False
+        finally:
+            files["coverage_files"][1].close()
+    else:
+        try:
+            response = requests.post(url, data=data, files=None)
+            response.raise_for_status()
+            logging.info("Successfully uploaded coverage data")
+            return True
+        except requests.exceptions.RequestException as e:
+            logging.error("Failed to upload coverage data: %s", e)
+            return False
 
-    try:
-        response = requests.post(url, headers=headers, json=payload)
-        response.raise_for_status()
-        logging.info("Successfully uploaded coverage data")
-        return True
-    except requests.exceptions.RequestException as e:
-        logging.error("Failed to upload coverage data: %s", e)
-        return False
 
 
-def create_gcov_archive(coverage_instance: LibCoverage, output_path: str | None = None, archive_name: str = "gcov_files.zip") -> str | None:
+
+def create_gcov_archive(coverage_instance: LibCoverage, output_path: str | None = None, archive_name: str = "coverage_data.tgz") -> str | None:
     """
-    Create a compressed zip archive of all collected .gcov files for upload.
+    Create a compressed .tgz archive of all collected .gcov files for upload.
     
-    This function uses the Utils.compress_gcov_files function to create a zip
+    This function uses the Utils.compress_gcov_files function to create a .tgz
     archive containing all the .gcov files that were generated during
     coverage analysis. The archive can be uploaded to a server for
     further processing or storage.
     
     Args:
         coverage_instance (LibCoverage): LibCoverage instance containing gcov_files
-        output_path (str, optional): Directory where the zip file should be created.
+        output_path (str, optional): Directory where the archive file should be created.
                                     If None, uses a temporary directory.
-        archive_name (str, optional): Name of the zip archive file. 
-                                    Defaults to "gcov_files.zip".
+        archive_name (str, optional): Name of the archive file. 
+                                    Defaults to "coverage_data.tgz".
     
     Returns:
-        str: Path to the created zip archive file, or None if no .gcov files exist
+        str: Path to the created archive file, or None if no .gcov files exist
         
     Raises:
         FileNotFoundError: If any of the .gcov files don't exist
-        OSError: If there are issues creating the zip file
+        OSError: If there are issues creating the archive file
     """
     if not coverage_instance.gcov_files:
         logging.warning("No .gcov files available for archiving. Run run_gcov_on_gcno_files() first.")
@@ -163,7 +181,7 @@ def main():
     # Upload coverage data if API key is provided
     if args.api_key:
         logging.info("Uploading data to endpoint")
-        upload_coverage_data(json_data, args.api_key)
+        upload_data(json_data, args.api_key, archive_path)
 
 
 if __name__ == "__main__":
