@@ -63,6 +63,7 @@ runs:
         path: |
           ${{inputs.root_path}}/apis.json
           ${{inputs.root_path}}/api_coverage.json
+          ${{inputs.root_path}}/coverage_data.tgz
         if-no-files-found: error
 
 

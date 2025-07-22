@@ -31,28 +31,28 @@ def upload_coverage_data(coverage_data, api_key):
         return False
 
 
-def create_gcov_archive(coverage_instance: LibCoverage, output_path: str | None = None, archive_name: str = "gcov_files.zip") -> str | None:
+def create_gcov_archive(coverage_instance: LibCoverage, output_path: str | None = None, archive_name: str = "coverage_data.tgz") -> str | None:
     """
-    Create a compressed zip archive of all collected .gcov files for upload.
+    Create a compressed .tgz archive of all collected .gcov files for upload.
     
-    This function uses the Utils.compress_gcov_files function to create a zip
+    This function uses the Utils.compress_gcov_files function to create a .tgz
     archive containing all the .gcov files that were generated during
     coverage analysis. The archive can be uploaded to a server for
     further processing or storage.
     
     Args:
         coverage_instance (LibCoverage): LibCoverage instance containing gcov_files
-        output_path (str, optional): Directory where the zip file should be created.
+        output_path (str, optional): Directory where the archive file should be created.
                                     If None, uses a temporary directory.
-        archive_name (str, optional): Name of the zip archive file. 
-                                    Defaults to "gcov_files.zip".
+        archive_name (str, optional): Name of the archive file. 
+                                    Defaults to "coverage_data.tgz".
     
     Returns:
-        str: Path to the created zip archive file, or None if no .gcov files exist
+        str: Path to the created archive file, or None if no .gcov files exist
         
     Raises:
         FileNotFoundError: If any of the .gcov files don't exist
-        OSError: If there are issues creating the zip file
+        OSError: If there are issues creating the archive file
     """
     if not coverage_instance.gcov_files:
         logging.warning("No .gcov files available for archiving. Run run_gcov_on_gcno_files() first.")
