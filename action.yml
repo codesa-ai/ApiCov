@@ -18,6 +18,10 @@ inputs:
   doxygen_path:
     description: 'Path to the Doxygen HTML files (optional)'
     required: false
+  xml:
+    description: 'Use XML mode for DocGen (true/false, default: true)'
+    required: false
+    default: 'true'
 
 runs:
   using: "composite"
@@ -38,18 +42,25 @@ runs:
         echo "Debug: api_key = ${{ inputs.api_key != '' && '***' || 'not set' }}"
         echo "Debug: install_path = ${{ inputs.install_path != '' && inputs.install_path || 'not set' }}"
         echo "Debug: doxygen_path = ${{ inputs.doxygen_path != '' && inputs.doxygen_path || 'not set' }}"
+        echo "Debug: xml = ${{ inputs.xml != '' && inputs.xml || 'not set' }}"
         echo "Debug: GITHUB_ACTION_PATH = $GITHUB_ACTION_PATH"
       shell: bash
 
     - name: Run APICov
       run: |
         echo "Debug: Constructing command..."
-        if [ -n "${{ inputs.install_path }}" ] && [ -n "${{ inputs.doxygen_path }}" ]; then
-          CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\" \"${{ inputs.install_path }}\" \"${{ inputs.doxygen_path }}\""
-        elif [ -n "${{ inputs.install_path }}" ]; then
-          CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\" \"${{ inputs.install_path }}\""
+        XML_FLAG=""
+        if [ "${{ inputs.xml }}" = "false" ]; then
+          XML_FLAG="--no-xml"
         else
-          CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\""
+          XML_FLAG="--xml"
+        fi
+        if [ -n "${{ inputs.install_path }}" ] && [ -n "${{ inputs.doxygen_path }}" ]; then
+          CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\" \"${{ inputs.install_path }}\" \"${{ inputs.doxygen_path }}\" $XML_FLAG"
+        elif [ -n "${{ inputs.install_path }}" ]; then
+          CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\" \"${{ inputs.install_path }}\" $XML_FLAG"
+        else
+          CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\" $XML_FLAG"
         fi
         echo "Debug: Full command: $CMD"
         chmod +x $GITHUB_ACTION_PATH/dist/run.sh

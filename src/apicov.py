@@ -96,6 +96,13 @@ def main():
         default=None,
         help="Path to the Doxygen HTML files (optional)",
     )
+    parser.add_argument(
+        "--xml",
+        dest="xml",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Use XML mode for DocGen (default: True)",
+    )
 
     args = parser.parse_args()
 
@@ -133,7 +140,7 @@ def main():
     if args.doxygen_path:
         logging.info("Generating API documentation")
         doxygen_path = os.path.abspath(os.path.expanduser(args.doxygen_path))
-        doc_gen = DocGen(doxygen_path, xml=True)
+        doc_gen = DocGen(doxygen_path, xml=args.xml)
         apidoc = doc_gen.generate_apidoc(lib_exports.apis)
     else:
         logging.info("No Doxygen path provided, skipping API documentation generation")
