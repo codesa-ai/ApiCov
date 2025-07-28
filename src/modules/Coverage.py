@@ -259,14 +259,14 @@ class LibCoverage:
             # Extract the base name of the .gcno file (without extension)
             base_name = os.path.splitext(filename)[0]
             
+            # Look for .gcov files in the root_dir where gcov was run from
             # Only collect .gcov files that correspond to the specific source file
-            # and are not system headers
-            for gcov_file in os.listdir(file_dir):
+            for gcov_file in os.listdir(self._root_dir):
                 if gcov_file.endswith(".gcov"):
                     # Check if this .gcov file corresponds to the main source file
                     # The pattern is: gcno_file##source_file.gcov
                     if gcov_file.startswith(f"{base_name}.gcno##{base_name}."):
-                        gcov_path = os.path.join(file_dir, gcov_file)
+                        gcov_path = os.path.join(self._root_dir, gcov_file)
                         if gcov_path not in self.gcov_files:
                             self.gcov_files.append(gcov_path)
                             logging.debug("Added .gcov file: %s", gcov_path)
