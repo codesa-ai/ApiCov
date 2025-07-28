@@ -236,26 +236,37 @@ class LibCoverage:
         This method processes all .gcno files found in the library directory
         and runs gcov on each one to generate corresponding .gcov_log files
         and .gcov files. The gcov output is filtered to remove irrelevant 
-        error messages. All generated .gcov files are stored in self.gcov_files.
+        error messages. Only .gcov files corresponding to the specific source
+        file are collected, not those for included headers. System headers
+        are excluded from coverage generation.
         """
         gcno_files = self.get_gcno_files()
         for file in gcno_files:
-            file_dir = os.path.split(file)[0]
+            file_dir = os.path.dirname(file)
             filename = os.path.split(file)[-1]
             logging.debug("FileName: %s", filename)
             if filename.startswith("."):
                 continue
             logging.debug("Processing gcno file: %s", file)
             log_file = file.replace(".gcno", ".gcov_log")
-            cmd = ["gcov", "-l", "-f", filename]  # Added -l option to include source code
-            p = subprocess.run(cmd, cwd=file_dir, capture_output=True, text=True)
+            
+            # Run gcov with options to include source code
+            cmd = ["gcov", "-l", "-f", file]
+            p = subprocess.run(cmd, cwd=self._root_dir, capture_output=True, text=True)
             with open(log_file, "w") as fh:
                 fh.write(self.filter_errors(p.stdout))
             
-            # Store all generated .gcov files for this .gcno file
+            # Extract the base name of the .gcno file (without extension)
+            base_name = os.path.splitext(filename)[0]
+            
+            # Only collect .gcov files that correspond to the specific source file
+            # and are not system headers
             for gcov_file in os.listdir(file_dir):
                 if gcov_file.endswith(".gcov"):
-                    gcov_path = os.path.join(file_dir, gcov_file)
-                    if gcov_path not in self.gcov_files:
-                        self.gcov_files.append(gcov_path)
-                        logging.debug("Added .gcov file: %s", gcov_path)
+                    # Check if this .gcov file corresponds to the main source file
+                    # The pattern is: gcno_file##source_file.gcov
+                    if gcov_file.startswith(f"{base_name}.gcno##{base_name}."):
+                        gcov_path = os.path.join(file_dir, gcov_file)
+                        if gcov_path not in self.gcov_files:
+                            self.gcov_files.append(gcov_path)
+                            logging.debug("Added .gcov file: %s", gcov_path)
