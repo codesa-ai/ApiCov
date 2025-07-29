@@ -245,10 +245,9 @@ class DocGen:
         Returns:
             Dict[str, str]: Dictionary mapping API names to merged documentation strings
         """
-        import textwrap
         api_docs = {}
-        logging.info(f"DEBUG: Final result - found documentation for {len(api_docs)} APIs")
-        logging.info(f"DEBUG: APIs with documentation: {list(api_docs.keys())}")
+        logging.debug(f"DEBUG: Final result - found documentation for {len(api_docs)} APIs")
+        logging.debug(f"DEBUG: APIs with documentation: {list(api_docs.keys())}")
         
         for xml_file in self.xml_files:
             try:
@@ -299,10 +298,10 @@ class DocGen:
 
                     api_docs[func_name] = doc_string.strip()
             except Exception as e:
-                logging.info(f"DEBUG: Error processing {xml_file}: {e}")
+                logging.debug(f"DEBUG: Error processing {xml_file}: {e}")
                 continue
-        logging.info(f"DEBUG: Final result - found documentation for {len(api_docs)} APIs")
-        logging.info(f"DEBUG: APIs with documentation: {list(api_docs.keys())}")
+        logging.debug(f"DEBUG: Final result - found documentation for {len(api_docs)} APIs")
+        logging.debug(f"DEBUG: APIs with documentation: {list(api_docs.keys())}")
         return api_docs
 
     def _extract_api_documentation_html_xml(self, apis: List[str]) -> Dict[str, str]:
