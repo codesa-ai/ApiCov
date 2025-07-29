@@ -236,11 +236,13 @@ class LibCoverage:
         This method processes all .gcno files found in the library directory
         and runs gcov on each one to generate corresponding .gcov_log files
         and .gcov files. The gcov output is filtered to remove irrelevant 
-        error messages. Only .gcov files corresponding to the specific source
-        file are collected, not those for included headers. System headers
-        are excluded from coverage generation.
+        error messages. After all gcov runs are complete, all .gcov files
+        are collected from the root directory.
         """
         gcno_files = self.get_gcno_files()
+        logging.info(f"Found {len(gcno_files)} .gcno files to process")
+        
+        # Run gcov on all .gcno files
         for file in gcno_files:
             file_dir = os.path.dirname(file)
             filename = os.path.split(file)[-1]
@@ -251,22 +253,17 @@ class LibCoverage:
             log_file = file.replace(".gcno", ".gcov_log")
             
             # Run gcov with options to include source code
-            cmd = ["gcov", "-l", "-f", file]
+            cmd = ["gcov", "-l", "-f", "-p", file]
+            logging.debug(f"Running gcov command: {' '.join(cmd)}")
             p = subprocess.run(cmd, cwd=self._root_dir, capture_output=True, text=True)
             with open(log_file, "w") as fh:
                 fh.write(self.filter_errors(p.stdout))
-            
-            # Extract the base name of the .gcno file (without extension)
-            base_name = os.path.splitext(filename)[0]
-            
-            # Look for .gcov files in the root_dir where gcov was run from
-            # Only collect .gcov files that correspond to the specific source file
-            for gcov_file in os.listdir(self._root_dir):
-                if gcov_file.endswith(".gcov"):
-                    # Check if this .gcov file corresponds to the main source file
-                    # The pattern is: gcno_file##source_file.gcov
-                    if gcov_file.startswith(f"{base_name}.gcno##{base_name}."):
-                        gcov_path = os.path.join(self._root_dir, gcov_file)
-                        if gcov_path not in self.gcov_files:
-                            self.gcov_files.append(gcov_path)
-                            logging.debug("Added .gcov file: %s", gcov_path)
+        
+        # Collect all .gcov files after all gcov runs are complete
+        logging.info("Collecting all .gcov files")
+        for gcov_file in os.listdir(self._root_dir):
+            if gcov_file.endswith(".gcov"):
+                self.gcov_files.append(gcov_file)
+                logging.debug("Added .gcov file: %s", gcov_file)
+        
+        logging.info(f"Collected {len(self.gcov_files)} .gcov files")

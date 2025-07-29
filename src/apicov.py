@@ -77,7 +77,7 @@ def create_gcov_archive(coverage_instance: LibCoverage, output_path: str | None 
         return None
     
     logging.info(f"Creating gcov archive with {len(coverage_instance.gcov_files)} files")
-    return compress_gcov_files(coverage_instance.gcov_files, output_path, archive_name)
+    return compress_gcov_files(coverage_instance.gcov_files, output_path, archive_name, coverage_instance._root_dir)
 
 
 def main():

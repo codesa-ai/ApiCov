@@ -50,10 +50,16 @@ def find_shared_libraries(root_dir):
     return shared_libs
 
 
-def compress_gcov_files(gcov_files: list[str], output_path: str | None = None, archive_name: str="coverage_data.tgz") -> str:
+def compress_gcov_files(gcov_files: list[str], output_path: str | None = None, archive_name: str="coverage_data.tgz", root_dir: str = None) -> str:
     """
     Compress all .gcov files into a tar.gz (.tgz) archive for upload.
     Only .tgz or .tar.gz extensions are supported.
+    
+    Args:
+        gcov_files (list[str]): List of gcov file paths (can be relative or absolute)
+        output_path (str, optional): Output directory for the archive. Defaults to current directory.
+        archive_name (str): Name of the archive file. Defaults to "coverage_data.tgz".
+        root_dir (str, optional): Root directory to resolve relative paths. If None, assumes paths are absolute.
     """
     if not gcov_files:
         logging.warning("No .gcov files provided for compression")
@@ -70,13 +76,34 @@ def compress_gcov_files(gcov_files: list[str], output_path: str | None = None, a
         if archive_name.endswith(".tgz") or archive_name.endswith(".tar.gz"):
             with tarfile.open(archive_file_path, "w:gz") as tarf:
                 for gcov_file in gcov_files:
-                    if not os.path.exists(gcov_file):
+                    # Resolve the full path if root_dir is provided
+                    if root_dir and not os.path.isabs(gcov_file):
+                        full_gcov_path = os.path.join(root_dir, gcov_file)
+                    else:
+                        full_gcov_path = gcov_file
+                    
+                    if not os.path.exists(full_gcov_path):
                         logging.warning(f"Gcov file not found: {gcov_file}")
                         continue
-                    file_path = Path(gcov_file)
-                    arcname = file_path.name
-                    tarf.add(gcov_file, arcname=arcname)
-                    logging.debug(f"Added to archive: {gcov_file} -> {arcname}")
+                    
+                    # Truncate the filename to be relative to the library root
+                    # Full filename: #home#ahmedzaki#benchmark_libs#FFmpeg#libavutil#tests#bprint.gcno##libavutil#bprint.h.gcov
+                    # We want: libavutil#tests#bprint.gcno##libavutil#bprint.h.gcov
+                    if root_dir:
+                        root_dir_name = os.path.basename(root_dir)
+                        # Split by the root directory name to get the part after it
+                        parts = gcov_file.split(f"#{root_dir_name}#")
+                        if len(parts) > 1:
+                            # Take everything after the root directory name
+                            arcname = parts[1]
+                        else:
+                            # Fallback: if we can't find the root dir name, use the original filename
+                            arcname = gcov_file
+                    else:
+                        arcname = gcov_file
+                    
+                    tarf.add(full_gcov_path, arcname=arcname)
+                    logging.debug(f"Added to archive: {full_gcov_path} -> {arcname}")
         else:
             raise ValueError(f"Unsupported archive extension for {archive_file_path}. Only .tgz or .tar.gz are supported.")
         logging.info(f"Successfully created gcov archive: {archive_file_path}")
