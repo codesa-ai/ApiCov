@@ -25,7 +25,15 @@ def upload_data(coverage_data: dict, api_key: str, archive_path: str | None = No
         "coverage": json.dumps(coverage_data),
     }
     if archive_path:
-        files["coverage_files"] = (os.path.basename(archive_path), open(archive_path, "rb"), "application/gzip")
+        # Determine content type based on file extension
+        if archive_path.endswith('.tar.xz') or archive_path.endswith('.txz'):
+            content_type = "application/x-xz"
+        elif archive_path.endswith('.tgz') or archive_path.endswith('.tar.gz'):
+            content_type = "application/gzip"
+        else:
+            content_type = "application/octet-stream"
+            
+        files["coverage_files"] = (os.path.basename(archive_path), open(archive_path, "rb"), content_type)
         try:
             response = requests.post(url, data=data, files=files)
             response.raise_for_status()
@@ -49,11 +57,11 @@ def upload_data(coverage_data: dict, api_key: str, archive_path: str | None = No
 
 
 
-def create_gcov_archive(coverage_instance: LibCoverage, output_path: str | None = None, archive_name: str = "coverage_data.tgz") -> str | None:
+def create_gcov_archive(coverage_instance: LibCoverage, output_path: str | None = None, archive_name: str = "coverage_data.tar.xz") -> str | None:
     """
-    Create a compressed .tgz archive of all collected .gcov files for upload.
+    Create a compressed .tar.xz archive of all collected .gcov files for upload.
     
-    This function uses the Utils.compress_gcov_files function to create a .tgz
+    This function uses the Utils.compress_gcov_files function to create a .tar.xz
     archive containing all the .gcov files that were generated during
     coverage analysis. The archive can be uploaded to a server for
     further processing or storage.
@@ -63,7 +71,7 @@ def create_gcov_archive(coverage_instance: LibCoverage, output_path: str | None 
         output_path (str, optional): Directory where the archive file should be created.
                                     If None, uses a temporary directory.
         archive_name (str, optional): Name of the archive file. 
-                                    Defaults to "coverage_data.tgz".
+                                    Defaults to "coverage_data.tar.xz".
     
     Returns:
         str: Path to the created archive file, or None if no .gcov files exist
@@ -179,7 +187,7 @@ def main():
 
     # Create gcov archive for upload
     logging.info("Creating gcov archive for upload")
-    archive_path = create_gcov_archive(entry_cov)
+    archive_path = create_gcov_archive(entry_cov, archive_name="coverage_data.tar.xz")
     if archive_path:
         logging.info(f"Gcov archive created successfully: {archive_path}")
     else:
