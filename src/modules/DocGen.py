@@ -1,21 +1,20 @@
 import os
 import json
-from typing import List, Dict, Optional
+from typing import List, Dict
 from pathlib import Path
 from bs4 import BeautifulSoup
 import xml.etree.ElementTree as ET
-import textwrap
 import logging
 
 
 class DocGen:
     """
     A class to extract API documentation from Doxygen-generated HTML or XML files.
-    
+
     This class provides functionality to parse Doxygen documentation and extract
     structured API documentation for specified functions. It can handle both
     HTML files (converting them to XML for parsing) and existing XML files.
-    
+
     The class extracts the following information for each API and merges it into
     a single comprehensive documentation string:
     - Function prototype/signature (definition + argsstring)
@@ -23,42 +22,43 @@ class DocGen:
     - Detailed description (all paragraphs concatenated)
     - Parameter descriptions (name and description for each parameter)
     - Return value descriptions
-    
+
     Attributes:
         doxygen_path (Path): Path to the Doxygen documentation directory
         xml_files (List[str]): List of XML file paths for parsing
         api_docs (Dict[str, str]): Dictionary storing extracted API documentation
         _xml (bool): Whether the documentation uses XML files instead of HTML
-    
+
     Methods:
         extract_all_paras(parent): Concatenate all <para> elements under a parent element
         _extract_api_documentation_xml(apis): Extract documentation from XML files
         _extract_api_documentation_html_xml(apis): Extract documentation from HTML-converted XML
         generate_apidoc(api_list): Generate documentation for a list of APIs
         generate_json(output_file): Save documentation to JSON file
-    
+
     Example:
         # Extract documentation from HTML files
         docgen = DocGen("/path/to/doxygen/html")
         api_list = ["function1", "function2"]
         docs = docgen.generate_apidoc(api_list)
-        
+
         # Extract documentation from existing XML files
         docgen = DocGen("/path/to/xml/files", xml=True)
         docs = docgen.generate_apidoc(api_list)
-        
+
         # Save to JSON file
         docgen.generate_json("output.json")
-    
+
     Dependencies:
         - beautifulsoup4: For HTML/XML parsing
         - lxml: For XML parsing (recommended for better performance)
         - xml.etree.ElementTree: For XML parsing
     """
+
     def __init__(self, doxygen_path: str, xml=False):
         """
         Initialize the DocGen class.
-        
+
         Args:
             doxygen_path (str): Path to the Doxygen-generated documentation directory
             xml (bool): Whether the documentation has XML files instead of HTML files
@@ -68,11 +68,13 @@ class DocGen:
         self.doxygen_path = Path(doxygen_path)
         if not xml:
             os.makedirs(self.doxygen_path / "apicov_xml", exist_ok=True)
-            self.convert_html_directory_to_xml(self.doxygen_path, self.doxygen_path / "apicov_xml")
+            self.convert_html_directory_to_xml(
+                self.doxygen_path, self.doxygen_path / "apicov_xml"
+            )
         else:
             self.xml_files = self._find_xml_files()
         self.api_docs = {}
-    
+
     def _find_xml_files(self) -> List[str]:
         """
         Find all XML files in the Doxygen documentation directory.
@@ -128,14 +130,14 @@ class DocGen:
                     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
                     print(f"Converting: {input_path} → {output_path}")
-                    self._convert_html_file_to_xml(input_path, output_path) 
+                    self._convert_html_file_to_xml(input_path, output_path)
 
     def _read_proto(self, member: ET.Element) -> str:
         proto = []
         proto.append(member.find("definition").text)
 
         proto.append(member.find("argsstring").text)
-    
+
         return " ".join(proto)
 
     def _read_details(self, member: ET.Element) -> str:
@@ -145,12 +147,15 @@ class DocGen:
         for para in paras:
             if para.text:
                 details.append(para.text.strip())
-        
+
             parameter_list = para.find("parameterlist")
-            if parameter_list is not None and parameter_list.attrib.get("kind") == "param":
+            if (
+                parameter_list is not None
+                and parameter_list.attrib.get("kind") == "param"
+            ):
                 for param in parameter_list.findall("parameteritem"):
                     if param.find(".//parametername") is not None:
-                        param_name = param.find(".//parametername").text 
+                        param_name = param.find(".//parametername").text
                     else:
                         param_name = "Unnamed parameter"
                     if param.find(".//parameterdescription/para") is not None:
@@ -158,10 +163,14 @@ class DocGen:
                     else:
                         param_desc = "No description"
                     details.append(f"Param `{param_name}`: {param_desc}")
-            
+
             for simplesect in para.findall("simplesect"):
                 kind = simplesect.attrib.get("kind")
-                sect_text = simplesect.find("para").text if simplesect.find("para") is not None else ""
+                sect_text = (
+                    simplesect.find("para").text
+                    if simplesect.find("para") is not None
+                    else ""
+                )
                 if kind == "return":
                     details.append(f"Returns: {sect_text}")
 
@@ -172,7 +181,7 @@ class DocGen:
         proto.append(member.find("definition").text)
 
         proto.append(member.find("argsstring").text)
-        
+
         return " ".join(proto)
 
     def _read_details(self, member: ET.Element) -> str:
@@ -182,12 +191,15 @@ class DocGen:
         for para in paras:
             if para.text:
                 details.append(para.text.strip())
-        
+
             parameter_list = para.find("parameterlist")
-            if parameter_list is not None and parameter_list.attrib.get("kind") == "param":
+            if (
+                parameter_list is not None
+                and parameter_list.attrib.get("kind") == "param"
+            ):
                 for param in parameter_list.findall("parameteritem"):
                     if param.find(".//parametername") is not None:
-                        param_name = param.find(".//parametername").text 
+                        param_name = param.find(".//parametername").text
                     else:
                         param_name = "Unnamed parameter"
                     if param.find(".//parameterdescription/para") is not None:
@@ -195,10 +207,14 @@ class DocGen:
                     else:
                         param_desc = "No description"
                     details.append(f"Param `{param_name}`: {param_desc}")
-            
+
             for simplesect in para.findall("simplesect"):
                 kind = simplesect.attrib.get("kind")
-                sect_text = simplesect.find("para").text if simplesect.find("para") is not None else ""
+                sect_text = (
+                    simplesect.find("para").text
+                    if simplesect.find("para") is not None
+                    else ""
+                )
                 if kind == "return":
                     details.append(f"Returns: {sect_text}")
 
@@ -207,48 +223,49 @@ class DocGen:
     def extract_all_paras(self, parent: ET.Element) -> str:
         """
         Concatenate all <para> elements under the given parent element.
-        
+
         This method extracts text from all <para> elements within a parent XML element,
         concatenating them with newlines. This ensures that multi-paragraph descriptions
         are captured completely rather than just the first paragraph.
-        
+
         Args:
             parent: XML element that may contain <para> child elements
-            
+
         Returns:
             str: Concatenated text from all <para> elements, or empty string if no parent
         """
         if parent is None:
             return ""
         return "\n".join(
-            " ".join(para.itertext()).strip()
-            for para in parent.findall("para")
+            " ".join(para.itertext()).strip() for para in parent.findall("para")
         )
 
     def _extract_api_documentation_xml(self, apis: List[str]) -> Dict[str, str]:
         """
         Extract documentation for a list of APIs from XML files.
-        
+
         This method parses Doxygen XML files to extract comprehensive documentation
         for each API function. It extracts and merges the following information:
         - Function prototype (definition + argsstring)
         - Brief description (all paragraphs)
-        - Detailed description (all paragraphs) 
+        - Detailed description (all paragraphs)
         - Parameter information (name and description for each parameter)
         - Return value information
-        
+
         The documentation is merged into a single string per API with clear sections.
-        
+
         Args:
             apis (List[str]): List of API function names to extract documentation for
-            
+
         Returns:
             Dict[str, str]: Dictionary mapping API names to merged documentation strings
         """
         api_docs = {}
-        logging.debug(f"DEBUG: Final result - found documentation for {len(api_docs)} APIs")
+        logging.debug(
+            f"DEBUG: Final result - found documentation for {len(api_docs)} APIs"
+        )
         logging.debug(f"DEBUG: APIs with documentation: {list(api_docs.keys())}")
-        
+
         for xml_file in self.xml_files:
             try:
                 tree = ET.parse(xml_file)
@@ -260,22 +277,33 @@ class DocGen:
                         continue
                     definition = member.findtext("definition")
                     argsstring = member.findtext("argsstring")
-                    proto = f"{definition}{argsstring}" if definition and argsstring else definition or ''
+                    proto = (
+                        f"{definition}{argsstring}"
+                        if definition and argsstring
+                        else definition or ""
+                    )
                     brief = self.extract_all_paras(member.find("briefdescription"))
-                    detailed = self.extract_all_paras(member.find("detaileddescription"))
+                    detailed = self.extract_all_paras(
+                        member.find("detaileddescription")
+                    )
 
                     # Extract parameters
                     params = []
                     for plist in member.findall("parameterlist[@kind='param']"):
                         for pitem in plist.findall("parameteritem"):
-                            pname = pitem.findtext("parameternamelist/parametername") or 'unnamed'
-                            pdesc = pitem.findtext("parameterdescription/para") or ''
+                            pname = (
+                                pitem.findtext("parameternamelist/parametername")
+                                or "unnamed"
+                            )
+                            pdesc = pitem.findtext("parameterdescription/para") or ""
                             params.append(f"  {pname}: {pdesc}")
                     params_str = "\n".join(params)
 
                     # Extract return value
                     returns = []
-                    for simplesect in member.findall("detaileddescription/simplesect[@kind='return']"):
+                    for simplesect in member.findall(
+                        "detaileddescription/simplesect[@kind='return']"
+                    ):
                         rtext = simplesect.findtext("para")
                         if rtext:
                             returns.append(rtext)
@@ -300,7 +328,9 @@ class DocGen:
             except Exception as e:
                 logging.debug(f"DEBUG: Error processing {xml_file}: {e}")
                 continue
-        logging.debug(f"DEBUG: Final result - found documentation for {len(api_docs)} APIs")
+        logging.debug(
+            f"DEBUG: Final result - found documentation for {len(api_docs)} APIs"
+        )
         logging.debug(f"DEBUG: APIs with documentation: {list(api_docs.keys())}")
         return api_docs
 
@@ -310,10 +340,11 @@ class DocGen:
         This version is tailored for Doxygen HTML structure: function prototypes and docs are in <tr> pairs.
         """
         from bs4 import BeautifulSoup
+
         api_docs = {}
         for xml_file in self.xml_files:
-            with open(xml_file, 'r', encoding='utf-8') as f:
-                soup = BeautifulSoup(f, 'xml')
+            with open(xml_file, "r", encoding="utf-8") as f:
+                soup = BeautifulSoup(f, "xml")
 
             # Find all function rows by class pattern
             for api in apis:
@@ -323,21 +354,25 @@ class DocGen:
                     a_tag = tr.find("a", class_="el")
                     if a_tag and a_tag.text.strip() == api:
                         # Prototype: combine all <td> text in this row
-                        proto = " ".join(td.get_text(" ", strip=True) for td in tr.find_all("td"))
+                        proto = " ".join(
+                            td.get_text(" ", strip=True) for td in tr.find_all("td")
+                        )
                         # Find the next sibling <tr> with class starting with "memdesc:"
                         desc_tr = tr.find_next_sibling("tr")
                         desc = ""
                         if desc_tr and desc_tr.find("td", class_="mdescRight"):
-                            desc = desc_tr.find("td", class_="mdescRight").get_text(" ", strip=True)
+                            desc = desc_tr.find("td", class_="mdescRight").get_text(
+                                " ", strip=True
+                            )
                         doc_string = f"{proto}\n{desc}".strip()
                         api_docs[api] = doc_string
                         break  # Stop after first match for this API
         return api_docs
-    
+
     def generate_json(self, output_file: str) -> bool:
         """
         Generate a JSON file with API documentation.
-        
+
         Args:
             output_file (str): Path to the output JSON file
 
@@ -345,7 +380,7 @@ class DocGen:
             bool: True if successful, False otherwise
         """
         try:
-            with open(output_file, 'w', encoding='utf-8') as f:
+            with open(output_file, "w", encoding="utf-8") as f:
                 json.dump(self.api_docs, f, indent=2, ensure_ascii=False)
                 print(f"Generated documentation JSON file: {output_file}")
             return True
@@ -356,13 +391,13 @@ class DocGen:
     def generate_apidoc(self, api_list: List[str]) -> Dict[str, str]:
         """
         Generate a dictionary with API documentation.
-        
+
         This method extracts documentation for the specified APIs and logs information
         about the extraction process, including warnings for missing APIs.
-        
+
         Args:
             api_list (List[str]): List of API names to extract documentation for
-            
+
         Returns:
             Dict[str, str]: Dictionary with API names as keys and documentation as values.
                            Missing APIs will not be present in the returned dictionary.
@@ -372,22 +407,25 @@ class DocGen:
             logging.debug(f"DEBUG: API list: {api_list}")
             logging.debug(f"DEBUG: Using XML mode: {self._xml}")
             logging.debug(f"DEBUG: XML files found: {len(self.xml_files)}")
-            
+
             if self._xml:
                 self.api_docs = self._extract_api_documentation_xml(api_list)
             else:
                 self.api_docs = self._extract_api_documentation_html_xml(api_list)
-            
-            
+
             # Check which APIs are missing
             missing_apis = [api for api in api_list if api not in self.api_docs]
             if missing_apis:
-                logging.warning(f"WARNING: Missing Documentation for APIs: {missing_apis}")
-            
-            logging.info(f"Extracted documentation for {len([k for k, v in self.api_docs.items() if v])} out of {len(api_list)} APIs")
-            
+                logging.warning(
+                    f"WARNING: Missing Documentation for APIs: {missing_apis}"
+                )
+
+            logging.info(
+                f"Extracted documentation for {len([k for k, v in self.api_docs.items() if v])} out of {len(api_list)} APIs"
+            )
+
             return self.api_docs
-            
+
         except Exception as e:
             print(f"Error generating documentation for APIs: {e}")
             return {}
@@ -398,20 +436,28 @@ def main():
     Example usage of the DocGen class.
     """
     import argparse
-    
-    parser = argparse.ArgumentParser(description='Extract API documentation from Doxygen files')
-    parser.add_argument('doxygen_path', help='Path to Doxygen documentation directory')
-    parser.add_argument('api_list', help='JSON file containing a list of API names')
-    parser.add_argument('output_file', help='Output JSON file path')
-    parser.add_argument('--xml', action='store_true', help='Use XML files instead of HTML files')
-    parser.add_argument('--list-apis', action='store_true', help='List available APIs instead of extracting')
-    
+
+    parser = argparse.ArgumentParser(
+        description="Extract API documentation from Doxygen files"
+    )
+    parser.add_argument("doxygen_path", help="Path to Doxygen documentation directory")
+    parser.add_argument("api_list", help="JSON file containing a list of API names")
+    parser.add_argument("output_file", help="Output JSON file path")
+    parser.add_argument(
+        "--xml", action="store_true", help="Use XML files instead of HTML files"
+    )
+    parser.add_argument(
+        "--list-apis",
+        action="store_true",
+        help="List available APIs instead of extracting",
+    )
+
     args = parser.parse_args()
-    
+
     docgen = DocGen(args.doxygen_path)
-    
+
     try:
-        with open(args.api_list, 'r', encoding='utf-8') as jsonfile:
+        with open(args.api_list, "r", encoding="utf-8") as jsonfile:
             api_data = json.load(jsonfile)
             api_list = api_data["apis"]
 

@@ -6,17 +6,17 @@ from modules.logging_config import logging
 class LibCoverage:
     """
     A class to analyze code coverage for library APIs using gcov data.
-    
+
     This class provides functionality to extract and analyze code coverage information
     for library functions using gcov-generated data files (.gcno and .gcov_log files).
     It calculates entry-point coverage (direct function coverage) for individual APIs.
-    
+
     The class supports:
     - Parsing gcov log files to extract coverage percentages and line counts
     - Calculating coverage for individual functions
     - Handling special cases like SDL libraries that use macro wrappers
     - Running gcov on .gcno files to generate coverage logs
-    
+
     Attributes:
         _apis (List[str]): List of API function names to analyze
         api_coverage (Dict[str, float]): Dictionary mapping API names to coverage percentages
@@ -24,31 +24,32 @@ class LibCoverage:
         api_sizes (Dict[str, int]): Dictionary mapping API names to total line counts
         _fn_sizes (Dict[str, tuple]): Cache of function coverage data (covered_lines, total_lines)
         gcov_files (List[str]): List of all generated .gcov file paths
-    
+
     Example:
         # Initialize with API list and library path
         apis = ["function1", "function2", "function3"]
         coverage = LibCoverage(apis, "/path/to/library")
-        
+
         # Generate coverage logs from .gcno files
         coverage.run_gcov_on_gcno_files()
-        
+
         # Calculate entry-point coverage for all APIs
         coverage.populate_entry_api_cov()
-        
+
         # Get results
         print(coverage.api_coverage)
         print(coverage.api_sizes)
-    
+
     Dependencies:
         - gcov: For generating coverage data from .gcno files
         - subprocess: For running gcov commands
         - os: For file system operations
     """
+
     def __init__(self, apis, lib_path):
         """
         Initialize the LibCoverage instance.
-        
+
         Args:
             apis (List[str]): List of API function names to analyze for coverage
             lib_path (str): Path to the library root directory containing .gcno files
@@ -63,14 +64,14 @@ class LibCoverage:
     def get_fn_size_and_cov(self, fn: str) -> tuple[int, int]:
         """
         Extract coverage data for a specific function from gcov log files.
-        
+
         This method searches for coverage information for the given function
         in .gcov_log files within the library directory. It parses the gcov
         output to extract both the total number of lines and the coverage percentage.
-        
+
         Args:
             fn (str): Function name to search for in coverage logs
-            
+
         Returns:
             tuple: (covered_lines, total_lines) where covered_lines is the number
                    of executed lines and total_lines is the total number of lines
@@ -128,12 +129,12 @@ class LibCoverage:
     def set_api_coverage(self, api: str) -> None:
         """
         Calculate entry-point coverage for a single API function.
-        
+
         This method extracts coverage information for the specified API function
         directly from gcov log files, without considering its callees. It searches
         for the function name in .gcov_log files and parses the coverage percentage
         and line count.
-        
+
         Args:
             api (str): API function name to calculate coverage for
         """
@@ -175,11 +176,11 @@ class LibCoverage:
     def populate_entry_api_cov(self, sdl: bool = False) -> None:
         """
         Calculate entry-point coverage for all APIs.
-        
+
         This method processes all APIs in the instance and calculates their
         direct coverage (without considering callees). It handles special cases
         for SDL libraries that use macro wrappers with _REAL suffix.
-        
+
         Args:
             sdl (bool): Whether this is an SDL library (uses macro wrappers with _REAL suffix)
         """
@@ -194,10 +195,10 @@ class LibCoverage:
     def get_gcno_files(self) -> list[str]:
         """
         Find all .gcno files in the library directory.
-        
+
         This method recursively searches the library directory for all .gcno files,
         which are gcov data files containing coverage information.
-        
+
         Returns:
             List[str]: List of absolute paths to all .gcno files found
         """
@@ -211,14 +212,14 @@ class LibCoverage:
     def filter_errors(self, lines: str) -> str:
         """
         Filter out common error messages from gcov output.
-        
+
         This method removes error messages that are not relevant to coverage
         analysis, such as "No such file or directory" and "Not a directory"
         messages that gcov may produce.
-        
+
         Args:
             lines (str): Raw output from gcov command
-            
+
         Returns:
             str: Filtered output with error messages removed
         """
@@ -232,16 +233,16 @@ class LibCoverage:
     def run_gcov_on_gcno_files(self) -> None:
         """
         Run gcov on all .gcno files to generate coverage logs and .gcov files.
-        
+
         This method processes all .gcno files found in the library directory
         and runs gcov on each one to generate corresponding .gcov_log files
-        and .gcov files. The gcov output is filtered to remove irrelevant 
+        and .gcov files. The gcov output is filtered to remove irrelevant
         error messages. After all gcov runs are complete, all .gcov files
         are collected from the root directory.
         """
         gcno_files = self.get_gcno_files()
         logging.info(f"Found {len(gcno_files)} .gcno files to process")
-        
+
         # Run gcov on all .gcno files
         for file in gcno_files:
             file_dir = os.path.dirname(file)
@@ -251,19 +252,19 @@ class LibCoverage:
                 continue
             logging.debug("Processing gcno file: %s", file)
             log_file = file.replace(".gcno", ".gcov_log")
-            
+
             # Run gcov with options to include source code
             cmd = ["gcov", "-l", "-f", "-p", file]
             logging.debug(f"Running gcov command: {' '.join(cmd)}")
             p = subprocess.run(cmd, cwd=self._root_dir, capture_output=True, text=True)
             with open(log_file, "w") as fh:
                 fh.write(self.filter_errors(p.stdout))
-        
+
         # Collect all .gcov files after all gcov runs are complete
         logging.info("Collecting all .gcov files")
         for gcov_file in os.listdir(self._root_dir):
             if gcov_file.endswith(".gcov"):
                 self.gcov_files.append(gcov_file)
                 logging.debug("Added .gcov file: %s", gcov_file)
-        
+
         logging.info(f"Collected {len(self.gcov_files)} .gcov files")

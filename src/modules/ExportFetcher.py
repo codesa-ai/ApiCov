@@ -10,29 +10,30 @@ from modules.logging_config import logging
 class ExportFetcher(object):
     """
     A class to extract and filter exported API symbols from shared libraries and header files.
-    
+
     This class provides functionality to:
     - Extract exported function symbols from shared libraries using nm and grep
     - Filter out non-API symbols by searching for their presence in header files
     - Identify function declarations in header files using regex
     - Support various build systems for header discovery and installation
-    
+
     Attributes:
         symbols (List[str]): All discovered symbols from shared libraries
         apis (List[str]): Filtered list of API symbols present in headers
         headers (List[str]): List of header file paths found in the install directory
-    
+
     Example:
         fetcher = ExportFetcher()
         fetcher.get_exports_from_lib("/path/to/libfoo.so")
         fetcher.filter_non_apis("/path/to/install/include")
         print(fetcher.apis)
-    
+
     Dependencies:
         - nm, grep: For extracting and filtering symbols from shared libraries
         - subprocess: For running shell commands
         - os, re: For file and regex operations
     """
+
     def __init__(self):
         self.symbols = []
         self.apis = []
