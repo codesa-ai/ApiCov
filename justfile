@@ -38,8 +38,12 @@ build:
   --hidden-import=lxml \
   --hidden-import=lxml.etree \
   --hidden-import=lxml._elementpath \
-  --hidden-import=xml.etree.ElementTree \
+  --hidden-import=xml \
   --hidden-import=xml.etree \
+  --hidden-import=xml.etree.ElementTree \
+  --hidden-import=xml.parsers \
+  --hidden-import=xml.parsers.expat \
+  --collect-submodules xml \
   --python-option="--enable-shared" \
   --add-data "src/modules:modules" \
   src/apicov.py

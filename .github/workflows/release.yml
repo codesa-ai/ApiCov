@@ -67,10 +67,14 @@ jobs:
             --hidden-import=bs4.builder._lxml \
             --hidden-import=lxml \
             --hidden-import=lxml.etree \
-            --hidden-import=xml.etree.ElementTree \
+            --hidden-import=xml \
             --hidden-import=xml.etree \
+            --hidden-import=xml.etree.ElementTree \
+            --hidden-import=xml.parsers \
+            --hidden-import=xml.parsers.expat \
             --collect-submodules bs4 \
             --collect-submodules lxml \
+            --collect-submodules xml \
             --collect-data bs4 \
             --collect-data lxml \
             --add-data "src/modules:modules" \
