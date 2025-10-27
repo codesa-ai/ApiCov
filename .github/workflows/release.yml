@@ -81,13 +81,11 @@ jobs:
             src/apicov.py            
           # Ensure binary is executable
           chmod +x dist/apicov
+          chmod +x dist/run.sh
+          
           # Save binary location
           echo "binary_path=$(pwd)/dist/apicov" >> $GITHUB_OUTPUT
           echo "script_path=$(pwd)/dist/run.sh" >> $GITHUB_OUTPUT
-
-      - name: Set run script permissions
-        run: |
-          chmod +x dist/run.sh
           
       - name: List build files
         run: |
