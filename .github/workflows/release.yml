@@ -150,6 +150,7 @@ jobs:
           BRANCH_NAME=$(git name-rev --name-only "$TAG_NAME")
           echo "Checking out branch: $BRANCH_NAME"
           git checkout "$BRANCH_NAME"
+          git pull origin "$BRANCH_NAME"
           
           # Get repository root
           REPO_ROOT=$(git rev-parse --show-toplevel)
