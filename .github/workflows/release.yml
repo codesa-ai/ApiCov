@@ -51,7 +51,10 @@ jobs:
           echo "✅ Checking current directory and files"
           pwd
           ls -R
-      
+
+          echo "✅ Saving run.sh"
+          cp dist/run.sh /tmp/run.sh
+    
           echo "✅ Cleaning previous builds"
           rm -rf build/ dist/ __pycache__ .cache/pyinstaller
       
@@ -79,6 +82,10 @@ jobs:
             --collect-data lxml \
             --add-data "src/modules:modules" \
             src/apicov.py            
+
+          echo "✅ Restoring run.sh"
+          cp /tmp/run.sh dist/run.sh
+    
           # Ensure binary is executable
           chmod +x dist/apicov
           chmod +x dist/run.sh
