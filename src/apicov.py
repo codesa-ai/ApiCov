@@ -8,6 +8,7 @@ from modules.Utils import find_shared_libraries, compress_gcov_files
 from modules.Coverage import LibCoverage
 from modules.logging_config import logging
 from modules.DocGen import DocGen
+import sys
 
 
 def upload_data(coverage_data: dict, api_key: str, archive_path: str | None = None):
@@ -123,6 +124,30 @@ def main():
     )
 
     args = parser.parse_args()
+
+    # Validate project_dir exists
+    project_dir = os.path.abspath(os.path.expanduser(args.project_dir))
+    if not os.path.isdir(project_dir):
+        logging.error(f"Error: project_dir does not exist: {args.project_dir}")
+        sys.exit(1)
+
+    # Validate api_key is not empty
+    if not args.api_key or args.api_key.strip() == "":
+        logging.error("Error: api_key is required but not provided")
+        sys.exit(1)
+
+    # Validate install_dir exists
+    install_dir = os.path.abspath(os.path.expanduser(args.install_dir))
+    if not os.path.isdir(install_dir):
+        logging.error(f"Error: install_dir does not exist: {args.install_dir}")
+        sys.exit(1)
+
+    # Validate doxygen_path if provided
+    if args.doxygen_path:
+        doxygen_path = os.path.abspath(os.path.expanduser(args.doxygen_path))
+        if not os.path.isdir(doxygen_path):
+            logging.error(f"Error: doxygen_path does not exist: {args.doxygen_path}")
+            sys.exit(1)
 
     logging.debug("Looking for shared libraries in the project directory")
     project_dir = os.path.abspath(os.path.expanduser(args.project_dir))
