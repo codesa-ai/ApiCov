@@ -85,48 +85,10 @@ jobs:
           echo "binary_path=$(pwd)/dist/apicov" >> $GITHUB_OUTPUT
           echo "script_path=$(pwd)/dist/run.sh" >> $GITHUB_OUTPUT
 
-      - name: Create run script
+      - name: Set run script permissions
         run: |
-          echo '#!/bin/bash' > dist/run.sh
-          echo '' >> dist/run.sh
-          echo '# Get the directory of the current script' >> dist/run.sh
-          echo 'SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"' >> dist/run.sh
-          echo '' >> dist/run.sh
-          echo 'echo "Debug: Script directory: $SCRIPT_DIR"' >> dist/run.sh
-          echo 'echo "Debug: Argument 1 (root_path): $1"' >> dist/run.sh
-          echo 'echo "Debug: Argument 2 (api_key): $2"' >> dist/run.sh
-          echo 'echo "Debug: Argument 3 (install_path): $3"' >> dist/run.sh
-          echo 'echo "Debug: Argument 4 (doxygen_path): $4"' >> dist/run.sh
-          echo 'echo "Debug: Argument 5 (xml flag): $5"' >> dist/run.sh
-          echo '' >> dist/run.sh
-          echo '# Check if the apicov binary exists in the same directory' >> dist/run.sh
-          echo 'if [[ -f "$SCRIPT_DIR/apicov" ]]; then' >> dist/run.sh
-          echo '  echo "Debug: Found apicov binary at: $SCRIPT_DIR/apicov"' >> dist/run.sh
-          echo '' >> dist/run.sh
-          echo '  # Require install_dir (argument 3)' >> dist/run.sh
-          echo '  if [ -z "$3" ]; then' >> dist/run.sh
-          echo '    echo "Error: install_dir (argument 3) is required."' >> dist/run.sh
-          echo '    echo "Usage: $0 <root_path> <api_key> <install_dir> [doxygen_path] [--xml|--no-xml]"' >> dist/run.sh
-          echo '    exit 1' >> dist/run.sh
-          echo '  fi' >> dist/run.sh
-          echo '' >> dist/run.sh
-          echo '  if [ -n "$4" ]; then' >> dist/run.sh
-          echo '    echo "Debug: Using install_dir: $3 and doxygen_path: $4"' >> dist/run.sh
-          echo '    CMD="$SCRIPT_DIR/apicov \"$1\" \"$2\" --install_dir \"$3\" --doxygen_path \"$4\" $5"' >> dist/run.sh
-          echo '  else' >> dist/run.sh
-          echo '    echo "Debug: Using install_dir: $3"' >> dist/run.sh
-          echo '    CMD="$SCRIPT_DIR/apicov \"$1\" \"$2\" --install_dir \"$3\" $4 $5"' >> dist/run.sh
-          echo '  fi' >> dist/run.sh
-          echo '' >> dist/run.sh
-          echo '  echo "Debug: Full command to be executed: $CMD"' >> dist/run.sh
-          echo '  # Run the apicov binary with the provided arguments' >> dist/run.sh
-          echo '  eval "$CMD"' >> dist/run.sh
-          echo 'else' >> dist/run.sh
-          echo '  echo "Error: apicov binary not found in $SCRIPT_DIR"' >> dist/run.sh
-          echo '  exit 1' >> dist/run.sh
-          echo 'fi' >> dist/run.sh
           chmod +x dist/run.sh
-
+          
       - name: List build files
         run: |
           echo "Listing files in dist directory:"
@@ -150,7 +112,6 @@ jobs:
           BRANCH_NAME=$(git name-rev --name-only "$TAG_NAME")
           echo "Checking out branch: $BRANCH_NAME"
           git checkout "$BRANCH_NAME"
-          git pull origin "$BRANCH_NAME"
           
           # Get repository root
           REPO_ROOT=$(git rev-parse --show-toplevel)
