@@ -245,7 +245,6 @@ class LibCoverage:
 
         # Run gcov on all .gcno files
         for file in gcno_files:
-            file_dir = os.path.dirname(file)
             filename = os.path.split(file)[-1]
             logging.debug("FileName: %s", filename)
             if filename.startswith("."):

@@ -2,17 +2,18 @@ import sys
 import os
 import unittest.mock as mock
 import requests
+import json
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from modules.Coverage import LibCoverage
-from modules.ExportFetcher import ExportFetcher
-from modules.Utils import find_shared_libraries
-from modules.logging_config import logging
-from apicov import upload_coverage_data
-from modules.DocGen import DocGen
+from modules.Coverage import LibCoverage  # noqa: E402
+from modules.ExportFetcher import ExportFetcher  # noqa: E402
+from modules.Utils import find_shared_libraries  # noqa: E402
+from modules.logging_config import logging  # noqa: E402
+from apicov import upload_data  # noqa: E402
+from modules.DocGen import DocGen  # noqa: E402
 
 PROJECT_DIR = os.path.join(os.path.dirname(__file__), "vorbis")
 SHARED_LIBS = os.path.join(os.path.dirname(__file__), "vorbis/lib/.libs")
@@ -61,8 +62,8 @@ def test_lib_coverage():
         )
 
 
-def test_upload_coverage_data():
-    logging.info("Testing upload_coverage_data function")
+def test_upload_data():
+    logging.info("Testing upload_data function")
 
     # Sample coverage data
     coverage_data = {"test_api": {"full_size": 100, "covered_lines": 50}}
@@ -74,21 +75,22 @@ def test_upload_coverage_data():
 
     # Test successful upload
     with mock.patch("requests.post", return_value=mock_response) as mock_post:
-        result = upload_coverage_data(coverage_data, api_key)
+        result = upload_data(coverage_data, api_key)
         assert result is True, "Upload should succeed"
 
         # Verify the request was made with correct parameters
         mock_post.assert_called_once()
         args, kwargs = mock_post.call_args
         assert args[0] == "https://callback-373812666155.europe-west2.run.app/upload"
-        assert kwargs["headers"] == {"Content-Type": "application/json"}
-        assert kwargs["json"] == {"api_key": api_key, "coverage": coverage_data}
+        assert "data" in kwargs
+        assert kwargs["data"]["api_key"] == api_key
+        assert json.loads(kwargs["data"]["coverage"]) == coverage_data
 
     # Test failed upload
     with mock.patch(
         "requests.post", side_effect=requests.exceptions.RequestException("Test error")
     ) as mock_post:
-        result = upload_coverage_data(coverage_data, api_key)
+        result = upload_data(coverage_data, api_key)
         assert result is False, "Upload should fail"
         mock_post.assert_called_once()
 
@@ -182,7 +184,7 @@ def test_docgen_init_html_mode():
         html_file.write_text(
             "<html><body><h1>Test</h1></body></html>", encoding="utf-8"
         )
-        docgen = DocGen(tmpdir)
+        DocGen(tmpdir)
         xml_dir = Path(tmpdir) / "apicov_xml"
         assert xml_dir.exists(), "apicov_xml directory should be created"
         xml_files = list(xml_dir.glob("*.xml"))
@@ -280,7 +282,7 @@ def main():
     test_find_shared_libraries()
     test_export_fetcher()
     test_lib_coverage()
-    test_upload_coverage_data()
+    test_upload_data()
     test_convert_html_directory_to_xml()
     test_docgen_html()
     test_docgen_xml()
