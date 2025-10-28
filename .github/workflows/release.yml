@@ -112,23 +112,12 @@ jobs:
           # Get the current tag
           TAG_NAME=${GITHUB_REF#refs/tags/}
           echo "Current tag: $TAG_NAME"
-
-          # Checkout the branch that the tag points to
-          BRANCH_NAME=$(git name-rev --name-only "$TAG_NAME")
+          
+          # Checkout main branch (change to 'master' if that's your default branch)
+          BRANCH_NAME="main"
           echo "Checking out branch: $BRANCH_NAME"
-          git checkout "$BRANCH_NAME"
-          
-          # Get repository root
-          REPO_ROOT=$(git rev-parse --show-toplevel)
-          echo "Repository root: $REPO_ROOT"
-          echo "Listing repository root contents:"
-          ls -la "$REPO_ROOT"
-          
-          # Ensure dist directory exists
-          echo "Creating dist directory in repository root"
-          mkdir -p "$REPO_ROOT/dist"
-          echo "Listing dist directory:"
-          ls -la "$REPO_ROOT/dist" || true
+          git fetch origin $BRANCH_NAME
+          git checkout $BRANCH_NAME
           
           # Ensure files are executable
           echo "Setting executable permissions"
@@ -137,16 +126,17 @@ jobs:
           
           # Add files to git
           echo "Adding files to git"
-          git add dist/
+          git add dist/apicov dist/run.sh
           echo "Committing changes"
           git commit -m "Update dist directory for $TAG_NAME [skip ci]"
           
-          echo "Creating new tag"
+          echo "Pushing branch"
+          git push origin $BRANCH_NAME
+          
+          echo "Updating tag to point to new commit"
           git tag -f $TAG_NAME
           echo "Pushing tag"
           git push origin $TAG_NAME --force
-          echo "Pushing branch"
-          git push origin "$BRANCH_NAME"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -161,7 +151,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
+      
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -188,29 +178,6 @@ jobs:
           # Ensure files are executable
           chmod +x "release/dist/apicov"
           chmod +x "release/dist/run.sh"
-
-      - name: Commit dist to repository
-        run: |
-          # Configure git
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
-          
-          # Get the current tag
-          TAG_NAME=${GITHUB_REF#refs/tags/}
-          echo "Current tag: $TAG_NAME"
-          
-          # Copy binary to dist/ in repo root
-          mkdir -p dist
-          cp release/dist/apicov dist/apicov
-          chmod +x dist/apicov
-          
-          # Add and commit
-          git add dist/apicov
-          git commit -m "Update dist for $TAG_NAME [skip ci]" || echo "No changes to commit"
-          
-          # Push to branch
-          BRANCH_NAME=$(git branch --show-current)
-          git push origin "$BRANCH_NAME" || echo "Nothing to push"
 
       - name: List release files and save paths
         id: list_files
