@@ -31,7 +31,7 @@ jobs:
 
       - name: Create virtual environment
         run: |
-          uv venv .venv
+          uv venv .venv --python 3.10
 
       - name: Install dependencies
         run: |
