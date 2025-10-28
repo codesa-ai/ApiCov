@@ -160,6 +160,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -175,88 +177,8 @@ jobs:
           # Create release directory
           mkdir -p release
           
-          # Create action.yml
-          cat > release/action.yml << 'EOF'
-          name: 'ApiCov'
-          description: 'Collect API coverage data from C/C++ projects'
-          author: 'Code SA'
-          branding:
-            icon: 'code'
-            color: 'blue'
-
-          inputs:
-            install_path:
-              description: 'The directory where the build is installed'
-              required: true
-            root_path:
-              description: 'The directory where the repo is cloned'
-              required: true
-            api_key:
-              description: 'API key for uploading coverage data to the endpoint'
-              required: true
-            doxygen_path:
-              description: 'Path to the Doxygen HTML files (optional, for API documentation extraction)'
-              required: false
-            xml:
-              description: 'Use XML mode for DocGen (true/false, default: true)'
-              required: false
-              default: 'true'
-
-          runs:
-            using: "composite"
-            steps:
-              - name: Detect Ubuntu version
-                id: detect_ubuntu
-                run: |
-                  if [[ "$(lsb_release -rs)" == "22.04" ]]; then
-                    echo "version=ubuntu-22.04" >> $GITHUB_OUTPUT
-                  else
-                    echo "version=ubuntu-24.04" >> $GITHUB_OUTPUT
-                  fi
-                shell: bash
-
-              - name: Debug inputs
-                run: |
-                  echo "Debug: root_path = ${{ inputs.root_path }}"
-                  echo "Debug: api_key = ${{ inputs.api_key != '' && '***' || 'not set' }}"
-                  echo "Debug: install_path = ${{ inputs.install_path != '' && inputs.install_path || 'not set' }}"
-                  echo "Debug: doxygen_path = ${{ inputs.doxygen_path != '' && inputs.doxygen_path || 'not set' }}"
-                  echo "Debug: xml = ${{ inputs.xml != '' && inputs.xml || 'not set' }}"
-                  echo "Debug: GITHUB_ACTION_PATH = $GITHUB_ACTION_PATH"
-                shell: bash
-
-              - name: Run APICov
-                run: |
-                  echo "Debug: Constructing command..."
-                  XML_FLAG=""
-                  if [ "${{ inputs.xml }}" = "false" ]; then
-                    XML_FLAG="--no-xml"
-                  else
-                    XML_FLAG="--xml"
-                  fi
-                  if [ -z "${{ inputs.install_path }}" ]; then
-                    echo "Error: install_path (argument 3) is required."
-                    echo "Usage: run.sh <root_path> <api_key> <install_path> [doxygen_path] [--xml|--no-xml]"
-                    exit 1
-                  fi
-                  if [ -n "${{ inputs.doxygen_path }}" ]; then
-                    CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\" \"${{ inputs.install_path }}\" \"${{ inputs.doxygen_path }}\" $XML_FLAG"
-                  else
-                    CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\" \"${{ inputs.install_path }}\" $XML_FLAG"
-                  fi
-                  echo "Debug: Full command: $CMD"
-                  eval "$CMD"
-                shell: bash
-
-              - name: "Upload JSON files"
-                uses: actions/upload-artifact@v4
-                with:
-                  name: api-coverage
-                  path: |
-                    ${{inputs.root_path}}/apis.json
-                    ${{inputs.root_path}}/api_coverage.json
-                  if-no-files-found: error
-          EOF
+          # Copy action.yml from the repository
+          cp action.yml release/action.yml
 
           # Copy binary and script to release directory
           mkdir -p "release/dist"
@@ -266,6 +188,29 @@ jobs:
           # Ensure files are executable
           chmod +x "release/dist/apicov"
           chmod +x "release/dist/run.sh"
+
+      - name: Commit dist to repository
+        run: |
+          # Configure git
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          
+          # Get the current tag
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          echo "Current tag: $TAG_NAME"
+          
+          # Copy binary to dist/ in repo root
+          mkdir -p dist
+          cp release/dist/apicov dist/apicov
+          chmod +x dist/apicov
+          
+          # Add and commit
+          git add dist/apicov
+          git commit -m "Update dist for $TAG_NAME [skip ci]" || echo "No changes to commit"
+          
+          # Push to branch
+          BRANCH_NAME=$(git branch --show-current)
+          git push origin "$BRANCH_NAME" || echo "Nothing to push"
 
       - name: List release files and save paths
         id: list_files
@@ -286,4 +231,4 @@ jobs:
           files: ${{ steps.list_files.outputs.files }}
           generate_release_notes: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
