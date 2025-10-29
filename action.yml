@@ -49,13 +49,19 @@ runs:
     - name: Run APICov
       run: |
         echo "Debug: Constructing command..."
-        XML_FLAG="--xml"
-        if [ "${{ inputs.xml }}" = "false" ]; then
-          XML_FLAG="--no-xml"
+        
+        # Check if binary exists
+        if [[ ! -f "${GITHUB_ACTION_PATH}/dist/apicov" ]]; then
+          echo "Error: apicov binary not found"
+          exit 1
         fi
+    
+        # Make sure it's executable
+    
+        XML_FLAG="${{ inputs.xml == 'false' && '--no-xml' || '--xml' }}"
         
         # Build command with named arguments for optional params
-        CMD="${GITHUB_ACTION_PATH}/dist/run.sh \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\" --install_dir \"${{ inputs.install_path }}\" $XML_FLAG"
+        CMD="${GITHUB_ACTION_PATH}/dist/apicov \"${{ inputs.root_path }}\" \"${{ inputs.api_key }}\" --install_dir \"${{ inputs.install_path }}\" $XML_FLAG"
         
         # Only add doxygen_path if it's not empty
         if [ -n "${{ inputs.doxygen_path }}" ]; then
@@ -63,8 +69,17 @@ runs:
         fi
         
         echo "Debug: Full command: $CMD"
-        chmod +x $GITHUB_ACTION_PATH/dist/run.sh
+        chmod +x "${GITHUB_ACTION_PATH}/dist/apicov"
         eval "$CMD"
+      shell: bash
+
+    - name: Debug - List files
+      run: |
+        echo "=== Listing root_path directory ==="
+        ls -la ${{ inputs.root_path }}
+        echo ""
+        echo "=== Searching for JSON files ==="
+        find ${{ inputs.root_path }} -name "*.json" -o -name "*.tgz"
       shell: bash
 
     - name: "Upload JSON files"
