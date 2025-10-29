@@ -11,3 +11,4 @@ artifact/*
 tests/vorbis/*
 src/modules/__pycache__/
 dist/*
+.idea
