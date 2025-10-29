@@ -163,30 +163,6 @@ jobs:
           # Ensure files are executable
           chmod +x "release/dist/apicov"
 
-      - name: Commit dist to repository
-        run: |
-          # Configure git
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
-          
-          # Get the current tag
-          TAG_NAME=${GITHUB_REF#refs/tags/}
-          echo "Current tag: $TAG_NAME"
-          
-          # Copy binary to dist/ in repo root
-          mkdir -p dist
-          cp release/dist/apicov dist/apicov
-          chmod +x dist/apicov
-          
-          # Add and commit
-          #git add dist/apicov
-          #git commit -m "Update dist for $TAG_NAME [skip ci]" || echo "No changes to commit"
-          
-          # Push to branch
-          BRANCH_NAME=$(git branch --show-current)
-          echo $BRANCH_NAME
-          #git push origin HEAD:main
-
       - name: List release files and save paths
         id: list_files
         run: |
