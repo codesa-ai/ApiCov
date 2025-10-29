@@ -261,7 +261,7 @@ class LibCoverage:
             logging.debug(f"gcov return code: {p.returncode}")
             logging.debug(f"gcov stdout: {p.stdout[:500]}")  # First 500 chars
             if p.stderr:
-                logging.debug(f"gcov stderr: {p.stderr}")
+                logging.error(f"gcov stderr: {p.stderr}")
 
             with open(log_file, "w") as fh:
                 fh.write(self.filter_errors(p.stdout))
