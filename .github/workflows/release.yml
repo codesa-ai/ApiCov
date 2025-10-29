@@ -19,6 +19,10 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Current commit
+        run: |
+          echo "Checked out: $(git rev-parse HEAD)"
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -104,10 +108,6 @@ jobs:
           # Get the current tag
           TAG_NAME=${GITHUB_REF#refs/tags/}
           echo "Current tag: $TAG_NAME"
-          
-          # Copy binary to dist/
-          mkdir -p dist
-          cp release/dist/apicov dist/apicov
           chmod +x dist/apicov
           
           # Commit the binary (creates new commit in detached HEAD)
@@ -132,6 +132,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Current commit
+        run: |
+          echo "Checked out: $(git rev-parse HEAD)"
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
