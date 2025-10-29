@@ -111,7 +111,7 @@ jobs:
           chmod +x dist/apicov
           
           # Commit the binary (creates new commit in detached HEAD)
-          git add dist/apicov
+          git add -f dist/apicov
           echo "Committing changes"
           git commit -m "Add binary for $TAG_NAME [skip ci]"
           
