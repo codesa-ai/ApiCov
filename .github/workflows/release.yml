@@ -52,9 +52,6 @@ jobs:
           pwd
           ls -R
 
-          echo "✅ Saving run.sh"
-          cp dist/run.sh /tmp/run.sh
-    
           echo "✅ Cleaning previous builds"
           rm -rf build/ dist/ __pycache__ .cache/pyinstaller
       
@@ -81,25 +78,20 @@ jobs:
             --collect-data bs4 \
             --collect-data lxml \
             --add-data "src/modules:modules" \
-            src/apicov.py            
-
-          echo "✅ Restoring run.sh"
-          cp /tmp/run.sh dist/run.sh
+            src/apicov.py
     
           # Ensure binary is executable
           chmod +x dist/apicov
-          chmod +x dist/run.sh
           
           # Save binary location
           echo "binary_path=$(pwd)/dist/apicov" >> $GITHUB_OUTPUT
-          echo "script_path=$(pwd)/dist/run.sh" >> $GITHUB_OUTPUT
-          
+
       - name: List build files
         run: |
           echo "Listing files in dist directory:"
           ls -la dist/
 
-      - name: Update dist directory in repository
+      - name: Update binary in tag
         run: |
           echo "Current working directory: $(pwd)"
           echo "Listing current directory contents:"
@@ -112,41 +104,21 @@ jobs:
           # Get the current tag
           TAG_NAME=${GITHUB_REF#refs/tags/}
           echo "Current tag: $TAG_NAME"
-
-          # Checkout the branch that the tag points to
-          BRANCH_NAME=$(git name-rev --name-only "$TAG_NAME")
-          echo "Checking out branch: $BRANCH_NAME"
-          git checkout "$BRANCH_NAME"
           
-          # Get repository root
-          REPO_ROOT=$(git rev-parse --show-toplevel)
-          echo "Repository root: $REPO_ROOT"
-          echo "Listing repository root contents:"
-          ls -la "$REPO_ROOT"
-          
-          # Ensure dist directory exists
-          echo "Creating dist directory in repository root"
-          mkdir -p "$REPO_ROOT/dist"
-          echo "Listing dist directory:"
-          ls -la "$REPO_ROOT/dist" || true
-          
-          # Ensure files are executable
-          echo "Setting executable permissions"
+          # Copy binary to dist/
+          mkdir -p dist
+          cp release/dist/apicov dist/apicov
           chmod +x dist/apicov
-          chmod +x dist/run.sh
           
-          # Add files to git
-          echo "Adding files to git"
-          git add dist/
+          # Commit the binary (creates new commit in detached HEAD)
+          git add dist/apicov
           echo "Committing changes"
-          git commit -m "Update dist directory for $TAG_NAME [skip ci]"
+          git commit -m "Add binary for $TAG_NAME [skip ci]"
           
-          echo "Creating new tag"
+          # Force-move tag to the new commit
+          echo "Moving tag to a new commit"
           git tag -f $TAG_NAME
-          echo "Pushing tag"
           git push origin $TAG_NAME --force
-          echo "Pushing branch"
-          git push origin "$BRANCH_NAME"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -154,7 +126,6 @@ jobs:
           name: apicov-binary
           path: |
             dist/apicov
-            dist/run.sh
 
   release:
     needs: build
