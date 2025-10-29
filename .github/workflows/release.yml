@@ -179,8 +179,8 @@ jobs:
           chmod +x dist/apicov
           
           # Add and commit
-          git add dist/apicov
-          git commit -m "Update dist for $TAG_NAME [skip ci]" || echo "No changes to commit"
+          #git add dist/apicov
+          #git commit -m "Update dist for $TAG_NAME [skip ci]" || echo "No changes to commit"
           
           # Push to branch
           BRANCH_NAME=$(git branch --show-current)
