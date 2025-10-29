@@ -256,6 +256,13 @@ class LibCoverage:
             cmd = ["gcov", "-l", "-f", "-p", file]
             logging.debug(f"Running gcov command: {' '.join(cmd)}")
             p = subprocess.run(cmd, cwd=self._root_dir, capture_output=True, text=True)
+
+            # DEBUG: Show what happened
+            logging.debug(f"gcov return code: {p.returncode}")
+            logging.debug(f"gcov stdout: {p.stdout[:500]}")  # First 500 chars
+            if p.stderr:
+                logging.debug(f"gcov stderr: {p.stderr}")
+
             with open(log_file, "w") as fh:
                 fh.write(self.filter_errors(p.stdout))
 
