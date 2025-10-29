@@ -111,6 +111,7 @@ jobs:
           chmod +x dist/apicov
           
           # Commit the binary (creates new commit in detached HEAD)
+          # Use -f as dist/* is in our .ignore
           git add -f dist/apicov
           echo "Committing changes"
           git commit -m "Add binary for $TAG_NAME [skip ci]"
@@ -158,11 +159,9 @@ jobs:
           # Copy binary and script to release directory
           mkdir -p "release/dist"
           cp "artifacts/apicov-binary/apicov" "release/dist/apicov"
-          cp "artifacts/apicov-binary/run.sh" "release/dist/run.sh"
           
           # Ensure files are executable
           chmod +x "release/dist/apicov"
-          chmod +x "release/dist/run.sh"
 
       - name: Commit dist to repository
         run: |
