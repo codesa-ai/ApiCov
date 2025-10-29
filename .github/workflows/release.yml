@@ -210,7 +210,8 @@ jobs:
           
           # Push to branch
           BRANCH_NAME=$(git branch --show-current)
-          git push origin "$BRANCH_NAME" || echo "Nothing to push"
+          echo BRANCH_NAME
+          git push origin HEAD:main
 
       - name: List release files and save paths
         id: list_files
