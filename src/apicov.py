@@ -150,11 +150,11 @@ def main():
             logging.error(f"Error: doxygen_path does not exist: {args.doxygen_path}")
             sys.exit(1)
 
-    logging.debug("Looking for shared libraries in the project directory")
-    project_dir = os.path.abspath(os.path.expanduser(args.project_dir))
+    logging.debug(f"Looking for shared libraries in the install directory: {install_dir}")
 
-    header_files = find_header_files(install_dir);
+    header_files = find_header_files(install_dir)
     logging.info("Header files found: %s", header_files)
+
     # Save header files to JSON
     headers_file = os.path.join(project_dir, "headers.json")
     logging.debug("Writing header files to: %s", headers_file)

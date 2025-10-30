@@ -71,10 +71,6 @@ def find_header_files(root_dir):
 
     headers = []
     for dirpath, dirnames, filenames in os.walk(root_dir):
-        # Include hidden directories
-        dirnames[:] = [d for d in dirnames if not d.startswith(".")] + [
-            d for d in dirnames if d.startswith(".")
-        ]
         for filename in filenames:
             if any(filename.lower().endswith(ext) for ext in header_extensions):
                 # Get relative path from root_dir
