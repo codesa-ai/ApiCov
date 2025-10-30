@@ -11,7 +11,7 @@ from modules.DocGen import DocGen
 import sys
 
 
-def upload_data(coverage_data: dict, headers_data: dict, api_key: str, archive_path: str | None = None):
+def upload_data(coverage_data: dict, header_files: list, api_key: str, archive_path: str | None = None):
     """Upload coverage data to the endpoint using multipart/form-data."""
     url = "https://callback-373812666155.europe-west2.run.app"
     # Prepare multipart form data
@@ -19,7 +19,7 @@ def upload_data(coverage_data: dict, headers_data: dict, api_key: str, archive_p
     data = {
         "api_key": api_key,
         "coverage": json.dumps(coverage_data),
-        "headers": json.dumps(headers_data)
+        "headers": json.dumps(header_files)
     }
     if archive_path:
         # Determine content type based on file extension
@@ -254,7 +254,7 @@ def main():
     # Upload coverage data if API key is provided
     if args.api_key:
         logging.info("Uploading data to endpoint")
-        upload_data(json_data, headers_data, args.api_key, archive_path)
+        upload_data(json_data, header_files, args.api_key, archive_path)
 
 
 if __name__ == "__main__":
