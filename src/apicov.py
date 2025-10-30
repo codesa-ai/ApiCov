@@ -162,7 +162,7 @@ def main():
         logging.info(f"No include directory found, searching for headers in: {install_dir}")
 
     header_files = find_header_files(header_search_dir)
-    logging.info("Header files found: %d", len(header_files))
+    logging.info("Header files found: %s", header_files)
 
     # Save header files to JSON
     headers_file = os.path.join(project_dir, "headers.json")
