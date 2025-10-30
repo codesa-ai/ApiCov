@@ -150,10 +150,19 @@ def main():
             logging.error(f"Error: doxygen_path does not exist: {args.doxygen_path}")
             sys.exit(1)
 
-    logging.debug(f"Looking for shared libraries in the install directory: {install_dir}")
+    logging.info(f"Looking for shared libraries in the install directory: {install_dir}")
 
-    header_files = find_header_files(install_dir)
-    logging.info("Header files found: %s", header_files)
+    # Check if include directory exists within install_dir
+    include_dir = os.path.join(install_dir, 'include')
+    if os.path.isdir(include_dir):
+        header_search_dir = include_dir
+        logging.info(f"Found include directory, searching for headers in: {include_dir}")
+    else:
+        header_search_dir = install_dir
+        logging.info(f"No include directory found, searching for headers in: {install_dir}")
+
+    header_files = find_header_files(header_search_dir)
+    logging.info("Header files found: %d", len(header_files))
 
     # Save header files to JSON
     headers_file = os.path.join(project_dir, "headers.json")
