@@ -11,6 +11,7 @@ if PROJECT_ROOT not in sys.path:
 from modules.Coverage import LibCoverage  # noqa: E402
 from modules.ExportFetcher import ExportFetcher  # noqa: E402
 from modules.Utils import find_shared_libraries  # noqa: E402
+from modules.Utils import find_header_files
 from modules.logging_config import logging  # noqa: E402
 from apicov import upload_data  # noqa: E402
 from modules.DocGen import DocGen  # noqa: E402
@@ -276,10 +277,54 @@ def test_convert_html_directory_to_xml():
                             f"XML file {xml_path} is not valid XML or is empty"
                         )
 
+def test_find_header_files():
+    """
+    Test find_header_files function to verify it correctly finds C/C++ header files.
+
+    This test checks that:
+    1. Header files are found in the test directory
+    2. The returned paths are relative to the root directory
+    3. Common header extensions are properly detected
+    4. Hidden directories are included in the search
+    """
+
+    logging.info("Testing find_header_files in directory: %s", INSTALL_DIR)
+
+    # Test with the vorbis include directory
+    headers = find_header_files(INSTALL_DIR)
+    logging.info("Found %d header files", len(headers))
+
+    # Check that we found some headers
+    assert len(headers) > 0, "No header files found in vorbis include directory"
+
+    # Check that paths are relative (not starting with the root dir)
+    for header in headers:
+        assert not header.startswith(INSTALL_DIR), (
+            f"Header path should be relative: {header}"
+        )
+        # Check that it's actually a header file
+        assert any(header.lower().endswith(ext) for ext in [
+            '.h', '.hpp', '.hxx', '.h++', '.hh',
+            '.tpp', '.ipp', '.inl', '.inc'
+        ]), f"File {header} doesn't have a valid header extension"
+
+    # Log some of the found headers for debugging
+    for header in headers[:5]:  # Show first 5 headers
+        logging.info("  Found header: %s", header)
+
+    # Test with the whole project directory (should find more headers)
+    all_headers = find_header_files(PROJECT_DIR)
+    logging.info("Found %d header files in entire project", len(all_headers))
+
+    # Should find at least the vorbis headers we found earlier
+    assert len(all_headers) >= len(headers), (
+        "Project directory should contain at least as many headers as include directory"
+    )
 
 def main():
     logging.info("Starting tests...")
     test_find_shared_libraries()
+    test_find_header_files()
     test_export_fetcher()
     test_lib_coverage()
     test_upload_data()

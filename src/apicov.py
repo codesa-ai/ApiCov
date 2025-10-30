@@ -4,7 +4,7 @@ import os
 import requests
 
 from modules.ExportFetcher import ExportFetcher
-from modules.Utils import find_shared_libraries, compress_gcov_files
+from modules.Utils import find_shared_libraries, compress_gcov_files, find_header_files
 from modules.Coverage import LibCoverage
 from modules.logging_config import logging
 from modules.DocGen import DocGen
@@ -100,8 +100,6 @@ def create_gcov_archive(
 
 
 def main():
-    logging.info(f"DEBUGGING")
-    logging.debug(f"DEBUGGING")
     parser = argparse.ArgumentParser(description="Code SA API Coverage Tool")
     parser.add_argument("project_dir", type=str, help="Path to the root directory")
     parser.add_argument("api_key", type=str, help="API key for uploading coverage data")
@@ -153,6 +151,16 @@ def main():
 
     logging.debug("Looking for shared libraries in the project directory")
     project_dir = os.path.abspath(os.path.expanduser(args.project_dir))
+
+    header_files = find_header_files(project_dir);
+    logging.info("Header files found: %s", header_files)
+    # Save header files to JSON
+    headers_file = os.path.join(project_dir, "headers.json")
+    logging.debug("Writing header files to: %s", headers_file)
+    headers_data = {"headers": header_files, "count": len(header_files)}
+    with open(headers_file, "w") as fh:
+        json.dump(headers_data, fh, indent=2)
+
     shared_libs = find_shared_libraries(project_dir)
 
     logging.info("Shared libraries found: %s", shared_libs)

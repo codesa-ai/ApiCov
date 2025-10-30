@@ -47,6 +47,41 @@ def find_shared_libraries(root_dir):
     return shared_libs
 
 
+def find_header_files(root_dir):
+    """
+    Finds all C and C++ header files in the given root directory, including hidden folders.
+
+    Args:
+        root_dir (str): The path to the root directory.
+
+    Returns:
+        list: A list of relative paths to the header files from the root directory.
+    """
+    header_extensions = (
+        '.h',  # C/C++ header
+        '.hpp',  # C++ header
+        '.hxx',  # C++ header
+        '.h++',  # C++ header
+        '.hh',  # C++ header
+        '.tpp',  # C++ template implementation
+        '.ipp',  # C++ inline implementation
+        '.inl',  # C++ inline header
+        '.inc'  # Include file
+    )
+
+    headers = []
+    for dirpath, dirnames, filenames in os.walk(root_dir):
+        # Include hidden directories
+        dirnames[:] = [d for d in dirnames if not d.startswith(".")] + [
+            d for d in dirnames if d.startswith(".")
+        ]
+        for filename in filenames:
+            if any(filename.lower().endswith(ext) for ext in header_extensions):
+                # Get relative path from root_dir
+                rel_path = os.path.relpath(os.path.join(dirpath, filename), root_dir)
+                headers.append(rel_path)
+    return headers
+
 def _add_files_to_tar(tarf, gcov_files, root_dir):
     """
     Add gcov files to a tar archive with proper path handling.
