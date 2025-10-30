@@ -153,7 +153,7 @@ def main():
     logging.debug("Looking for shared libraries in the project directory")
     project_dir = os.path.abspath(os.path.expanduser(args.project_dir))
 
-    header_files = find_header_files(project_dir);
+    header_files = find_header_files(install_dir);
     logging.info("Header files found: %s", header_files)
     # Save header files to JSON
     headers_file = os.path.join(project_dir, "headers.json")
@@ -162,7 +162,7 @@ def main():
     with open(headers_file, "w") as fh:
         json.dump(headers_data, fh, indent=2)
 
-    shared_libs = find_shared_libraries(project_dir)
+    shared_libs = find_shared_libraries(install_dir)
 
     logging.info("Shared libraries found: %s", shared_libs)
 
