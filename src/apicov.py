@@ -134,6 +134,22 @@ def main():
         default=None,
         help="Compiler type (e.g., gcc). If set to 'gcc', lcov will be used to generate coverage info",
     )
+    parser.add_argument(
+        "--api-source",
+        type=str,
+        choices=["shared-libs", "headers"],
+        default="shared-libs",
+        help="Source for API extraction: 'shared-libs' extracts from shared library exports "
+             "(default), 'headers' parses header files directly (useful for C++ vtables where "
+             "symbols may not be exported but are callable via vtable dispatch)",
+    )
+    parser.add_argument(
+        "--headers-dir",
+        type=str,
+        default=None,
+        help="Path to the directory containing header files. If not provided, defaults to "
+             "install_dir/include (if exists) or install_dir",
+    )
 
     args = parser.parse_args()
 
@@ -161,22 +177,34 @@ def main():
             logging.error(f"Error: doxygen_path does not exist: {args.doxygen_path}")
             sys.exit(1)
 
+    # Validate headers_dir if provided
+    if args.headers_dir:
+        headers_dir = os.path.abspath(os.path.expanduser(args.headers_dir))
+        if not os.path.isdir(headers_dir):
+            logging.error(f"Error: headers_dir does not exist: {args.headers_dir}")
+            sys.exit(1)
+
     logging.info(
         f"Looking for shared libraries in the install directory: {install_dir}"
     )
 
-    # Check if include directory exists within install_dir
-    include_dir = os.path.join(install_dir, "include")
-    if os.path.isdir(include_dir):
-        header_search_dir = include_dir
-        logging.info(
-            f"Found include directory, searching for headers in: {include_dir}"
-        )
+    # Determine header search directory
+    if args.headers_dir:
+        header_search_dir = os.path.abspath(os.path.expanduser(args.headers_dir))
+        logging.info(f"Using provided headers directory: {header_search_dir}")
     else:
-        header_search_dir = install_dir
-        logging.info(
-            f"No include directory found, searching for headers in: {install_dir}"
-        )
+        # Check if include directory exists within install_dir
+        include_dir = os.path.join(install_dir, "include")
+        if os.path.isdir(include_dir):
+            header_search_dir = include_dir
+            logging.info(
+                f"Found include directory, searching for headers in: {include_dir}"
+            )
+        else:
+            header_search_dir = install_dir
+            logging.info(
+                f"No include directory found, searching for headers in: {install_dir}"
+            )
 
     header_files = find_header_files(header_search_dir)
     logging.info("Header files found: %s", header_files)
@@ -188,22 +216,31 @@ def main():
     with open(headers_file, "w") as fh:
         json.dump(headers_data, fh, indent=2)
 
-    shared_libs = find_shared_libraries(install_dir)
-
-    logging.info("Shared libraries found: %s", shared_libs)
-
-    logging.debug("Identifying exports from shared libraries")
     lib_exports = ExportFetcher()
-    for lib in shared_libs:
-        lib_exports.get_exports_from_lib(lib)
 
-    logging.info("Total number of symbols found: %d", len(lib_exports.symbols))
+    if args.api_source == "headers":
+        # Header-based API extraction mode
+        # Useful for C++ vtables where symbols may not be in shared lib exports
+        logging.info("Using header-based API extraction mode")
+        logging.info("Extracting APIs from header files in: %s", header_search_dir)
+        lib_exports.get_apis_from_headers(header_search_dir)
+        logging.info("Total number of APIs found from headers: %d", len(lib_exports.apis))
+    else:
+        # Default: shared library export-based API extraction
+        shared_libs = find_shared_libraries(install_dir)
+        logging.info("Shared libraries found: %s", shared_libs)
 
-    logging.info("Filtering non-API exports")
-    install_dir = os.path.abspath(os.path.expanduser(args.install_dir))
-    lib_exports.filter_non_apis(install_dir)
+        logging.debug("Identifying exports from shared libraries")
+        for lib in shared_libs:
+            lib_exports.get_exports_from_lib(lib)
 
-    logging.info("Total number of APIs found: %d", len(lib_exports.apis))
+        logging.info("Total number of symbols found: %d", len(lib_exports.symbols))
+
+        logging.info("Filtering non-API exports")
+        install_dir = os.path.abspath(os.path.expanduser(args.install_dir))
+        lib_exports.filter_non_apis(install_dir)
+
+        logging.info("Total number of APIs found: %d", len(lib_exports.apis))
     json_data = {"apis": lib_exports.apis}
     api_file = os.path.join(project_dir, "apis.json")
     logging.debug("Writing APIs to:  %s", api_file)

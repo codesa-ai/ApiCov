@@ -253,7 +253,7 @@ class LibCoverage:
             log_file = file.replace(".gcno", ".gcov_log")
 
             # Run gcov with options to include source code
-            cmd = ["gcov", "-l", "-f", "-p", file]
+            cmd = ["gcov", "-f", file]
             logging.debug(f"Running gcov command: {' '.join(cmd)}")
             p = subprocess.run(cmd, cwd=self._root_dir, capture_output=True, text=True)
 
