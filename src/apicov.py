@@ -8,7 +8,6 @@ import tarfile
 from modules.ExportFetcher import ExportFetcher
 from modules.Utils import (
     find_shared_libraries,
-    compress_gcov_files,
     find_header_files,
     compress_lcov_file,
 )
@@ -104,85 +103,6 @@ def generate_lcov_info(library_dir: str, output_file: str) -> bool:
     except FileNotFoundError:
         logging.error("lcov command not found. Please ensure lcov is installed.")
         return False
-
-
-def create_lcov_archive(
-    info_file: str,
-    output_path: str | None = None,
-    archive_name: str = "coverage_data.tar.xz",
-) -> str | None:
-    """
-    Create a compressed .tar.xz archive containing the lcov .info file.
-
-    This function uses the Utils.compress_lcov_file function to create a .tar.xz
-    archive containing the lcov .info file that was generated during
-    coverage analysis. The archive can be uploaded to a server for
-    further processing or storage.
-
-    Args:
-        info_file (str): Path to the lcov .info file
-        output_path (str, optional): Directory where the archive file should be created.
-                                    If None, uses the same directory as info_file.
-        archive_name (str, optional): Name of the archive file.
-                                    Defaults to "coverage_data.tar.xz".
-
-    Returns:
-        str: Path to the created archive file, or None if failed
-
-    Raises:
-        FileNotFoundError: If the .info file doesn't exist
-        OSError: If there are issues creating the archive file
-    """
-    if not os.path.exists(info_file):
-        logging.error(f"Info file does not exist: {info_file}")
-        return None
-
-    logging.info(f"Creating lcov archive with info file: {info_file}")
-    return compress_lcov_file(info_file, output_path, archive_name)
-
-
-def create_gcov_archive(
-    coverage_instance: LibCoverage,
-    output_path: str | None = None,
-    archive_name: str = "coverage_data.tar.xz",
-) -> str | None:
-    """
-    Create a compressed .tar.xz archive of all collected .gcov files for upload.
-
-    This function uses the Utils.compress_gcov_files function to create a .tar.xz
-    archive containing all the .gcov files that were generated during
-    coverage analysis. The archive can be uploaded to a server for
-    further processing or storage.
-
-    Args:
-        coverage_instance (LibCoverage): LibCoverage instance containing gcov_files
-        output_path (str, optional): Directory where the archive file should be created.
-                                    If None, uses a temporary directory.
-        archive_name (str, optional): Name of the archive file.
-                                    Defaults to "coverage_data.tar.xz".
-
-    Returns:
-        str: Path to the created archive file, or None if no .gcov files exist
-
-    Raises:
-        FileNotFoundError: If any of the .gcov files don't exist
-        OSError: If there are issues creating the archive file
-    """
-    if not coverage_instance.gcov_files:
-        logging.warning(
-            "No .gcov files available for archiving. Run run_gcov_on_gcno_files() first."
-        )
-        return None
-
-    logging.info(
-        f"Creating gcov archive with {len(coverage_instance.gcov_files)} files"
-    )
-    return compress_gcov_files(
-        coverage_instance.gcov_files,
-        output_path,
-        archive_name,
-        coverage_instance._root_dir,
-    )
 
 
 def main():
@@ -347,7 +267,7 @@ def main():
         baseline_info = os.path.join(project_dir, "baseline.info")
         if generate_lcov_info(project_dir, baseline_info):
             logging.info("Creating lcov archive for upload")
-            archive_path = create_lcov_archive(
+            archive_path = compress_lcov_file(
                 baseline_info,
                 output_path=project_dir,
                 archive_name="coverage_data.tar.xz",
