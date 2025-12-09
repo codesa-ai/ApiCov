@@ -58,15 +58,15 @@ def find_header_files(root_dir):
         list: A list of relative paths to the header files from the root directory.
     """
     header_extensions = (
-        '.h',  # C/C++ header
-        '.hpp',  # C++ header
-        '.hxx',  # C++ header
-        '.h++',  # C++ header
-        '.hh',  # C++ header
-        '.tpp',  # C++ template implementation
-        '.ipp',  # C++ inline implementation
-        '.inl',  # C++ inline header
-        '.inc'  # Include file
+        ".h",  # C/C++ header
+        ".hpp",  # C++ header
+        ".hxx",  # C++ header
+        ".h++",  # C++ header
+        ".hh",  # C++ header
+        ".tpp",  # C++ template implementation
+        ".ipp",  # C++ inline implementation
+        ".inl",  # C++ inline header
+        ".inc",  # Include file
     )
 
     headers = []
@@ -77,6 +77,7 @@ def find_header_files(root_dir):
                 rel_path = os.path.relpath(os.path.join(dirpath, filename), root_dir)
                 headers.append(rel_path)
     return headers
+
 
 def _add_files_to_tar(tarf, gcov_files, root_dir):
     """
@@ -142,10 +143,10 @@ def compress_lcov_file(
     # Determine output directory
     if output_path is None:
         output_path = os.path.dirname(info_file) or os.getcwd()
-    
+
     # Create output directory if it doesn't exist
     os.makedirs(output_path, exist_ok=True)
-    
+
     # Full path for the archive file
     archive_file_path = os.path.join(output_path, archive_name)
     logging.info(f"Compressing lcov info file into {archive_file_path}")
