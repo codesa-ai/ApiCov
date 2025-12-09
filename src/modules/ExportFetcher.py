@@ -137,7 +137,11 @@ class ExportFetcher(object):
         # Matches: return_type method_name(params) { ... } or return_type method_name(params) const { ... }
         cpp_inline_pattern = r"^\s*(?:virtual\s+)?(?:static\s+|inline\s+)?(?:const\s+)?[\w\s*&:<>]+?\s+(\w+)\s*\([^)]*\)\s*(?:const)?\s*(?:override)?\s*(?:noexcept)?\s*\{"
         
-        for pattern in [export_pattern, c_pattern, cpp_pattern, vtable_pattern, cpp_inline_pattern]:
+        # Pattern for multi-line function declarations (captures function name from first line)
+        # Matches: return_type function_name( on its own line (params continue on next lines)
+        multiline_pattern = r"^\s*(?:virtual\s+)?(?:static\s+|inline\s+)?(?:const\s+)?[\w\s*&:<>]+?\s+(\w+)\s*\([^)]*,$"
+        
+        for pattern in [export_pattern, c_pattern, cpp_pattern, vtable_pattern, cpp_inline_pattern, multiline_pattern]:
             regex = re.compile(pattern, re.MULTILINE)
             matches = regex.findall(file_data)
             for function_name in matches:
