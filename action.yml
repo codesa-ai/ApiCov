@@ -19,9 +19,9 @@ inputs:
     description: 'Path to the Doxygen HTML files (optional)'
     required: false
   xml:
-    description: 'Use XML mode for DocGen (true/false, default: true)'
+    description: 'Use XML mode for DocGen (true/false, default: false)'
     required: false
-    default: 'true'
+    default: 'false'
   compile:
     description: 'Compiler type (e.g., gcc). If set to "gcc", lcov will be used to generate coverage info'
     required: false
