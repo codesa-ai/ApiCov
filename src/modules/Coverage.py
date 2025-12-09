@@ -1,5 +1,7 @@
 import os
+import re
 import subprocess
+import shutil
 from modules.logging_config import logging
 
 
@@ -60,6 +62,9 @@ class LibCoverage:
         self.api_sizes = {}
         self._fn_sizes = {}
         self.gcov_files = []  # Store all generated .gcov files
+        self._has_cxxfilt = shutil.which("c++filt") is not None
+        if not self._has_cxxfilt:
+            logging.warning("c++filt not found - C++ mangled names will not be demangled")
 
     def get_fn_size_and_cov(self, fn: str) -> tuple[int, int]:
         """
@@ -209,6 +214,111 @@ class LibCoverage:
                     gcno_files.append(os.path.join(root, file))
         return gcno_files
 
+    def _extract_function_name(self, name: str) -> str:
+        """
+        Extract just the function/method name from a potentially demangled C++ name.
+
+        This method is backwards compatible with C code:
+        - C functions pass through unchanged (no ::, no mangling)
+        - C++ demangled names are simplified to just the method name
+
+        Examples:
+            C:   'my_function' -> 'my_function' (unchanged)
+            C:   'SDL_Init' -> 'SDL_Init' (unchanged)
+            C++: 'lok::Document::saveAs(char const*, char const*)' -> 'saveAs'
+            C++: 'namespace::Class::method()' -> 'method'
+            C++: 'std::vector<int>::push_back(int)' -> 'push_back'
+            C++: 'operator<<(...)' -> 'operator<<'
+
+        Args:
+            name (str): Function name (C) or demangled C++ function name
+
+        Returns:
+            str: Just the function/method name without namespace, class, or parameters
+        """
+        # For plain C functions without any special characters, return as-is
+        # This ensures backwards compatibility with C code
+        if '::' not in name and '(' not in name and '<' not in name:
+            return name
+
+        # Remove template parameters first (e.g., std::vector<int>::push_back)
+        # Simple approach: remove content between < and >
+        clean_name = re.sub(r'<[^>]*>', '', name)
+
+        # Remove function parameters (everything from first '(' onwards)
+        if '(' in clean_name:
+            clean_name = clean_name.split('(')[0]
+
+        # Handle operator overloads (keep the operator part)
+        if 'operator' in clean_name:
+            # Extract operator and its symbol
+            match = re.search(r'(operator\S+)', clean_name)
+            if match:
+                return match.group(1)
+
+        # Get the last component after :: (the actual function/method name)
+        if '::' in clean_name:
+            return clean_name.split('::')[-1]
+
+        return clean_name
+
+    def demangle_cxx_names(self, text: str) -> str:
+        """
+        Demangle C++ mangled names in the given text using c++filt and extract
+        just the function/method names.
+
+        This method is backwards compatible with C code:
+        - C function names are not mangled and pass through unchanged
+        - C++ mangled names (starting with _Z) are demangled and simplified
+
+        C++ compilers mangle function names (e.g., _ZN3lok8Document7saveAsEPKcS2_S2_
+        becomes lok::Document::saveAs). This method demangles names and extracts
+        just the method name (saveAs) to match our header-based API extraction.
+
+        Args:
+            text (str): Text potentially containing mangled C++ names
+
+        Returns:
+            str: Text with C++ names demangled to just method names,
+                 C names are unchanged
+        """
+        if not self._has_cxxfilt:
+            return text
+
+        try:
+            result = subprocess.run(
+                ["c++filt"],
+                input=text,
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            if result.returncode != 0:
+                logging.warning("c++filt failed, using original text")
+                return text
+
+            # Process each line and simplify demangled names to just function names
+            output_lines = []
+            for line in result.stdout.splitlines():
+                # Look for function name patterns in gcov output
+                # gcov outputs lines like: "Function 'mangled_name'"
+                if line.startswith("Function '") and line.endswith("'"):
+                    # Extract the demangled name
+                    demangled = line[10:-1]  # Remove "Function '" and trailing "'"
+                    simple_name = self._extract_function_name(demangled)
+                    output_lines.append(f"Function '{simple_name}'")
+                else:
+                    output_lines.append(line)
+
+            return "\n".join(output_lines)
+
+        except subprocess.TimeoutExpired:
+            logging.warning("c++filt timed out, using original text")
+            return text
+        except Exception as e:
+            logging.warning(f"c++filt error: {e}, using original text")
+            return text
+
     def filter_errors(self, lines: str) -> str:
         """
         Filter out common error messages from gcov output.
@@ -263,8 +373,12 @@ class LibCoverage:
             if p.stderr:
                 logging.error(f"gcov stderr: {p.stderr}")
 
+            # Filter errors and demangle C++ names before writing
+            filtered_output = self.filter_errors(p.stdout)
+            demangled_output = self.demangle_cxx_names(filtered_output)
+
             with open(log_file, "w") as fh:
-                fh.write(self.filter_errors(p.stdout))
+                fh.write(demangled_output)
 
         # Collect all .gcov files after all gcov runs are complete
         logging.info("Collecting all .gcov files")
