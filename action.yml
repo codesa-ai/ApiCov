@@ -22,6 +22,9 @@ inputs:
     description: 'Use XML mode for DocGen (true/false, default: true)'
     required: false
     default: 'true'
+  compile:
+    description: 'Compiler type (e.g., gcc). If set to "gcc", lcov will be used to generate coverage info'
+    required: false
 
 runs:
   using: "composite"
@@ -43,6 +46,7 @@ runs:
         echo "Debug: install_path = ${{ inputs.install_path != '' && inputs.install_path || 'not set' }}"
         echo "Debug: doxygen_path = ${{ inputs.doxygen_path != '' && inputs.doxygen_path || 'not set' }}"
         echo "Debug: xml = ${{ inputs.xml != '' && inputs.xml || 'not set' }}"
+        echo "Debug: compile = ${{ inputs.compile != '' && inputs.compile || 'not set' }}"
         echo "Debug: GITHUB_ACTION_PATH = $GITHUB_ACTION_PATH"
       shell: bash
 
@@ -66,6 +70,11 @@ runs:
         # Only add doxygen_path if it's not empty
         if [ -n "${{ inputs.doxygen_path }}" ]; then
           CMD="$CMD --doxygen_path \"${{ inputs.doxygen_path }}\""
+        fi
+        
+        # Only add compile if it's not empty
+        if [ -n "${{ inputs.compile }}" ]; then
+          CMD="$CMD --compile \"${{ inputs.compile }}\""
         fi
         
         echo "Debug: Full command: $CMD"

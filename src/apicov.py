@@ -2,16 +2,27 @@ import argparse
 import json
 import os
 import requests
+import subprocess
+import tarfile
 
 from modules.ExportFetcher import ExportFetcher
-from modules.Utils import find_shared_libraries, compress_gcov_files, find_header_files
+from modules.Utils import (
+    find_shared_libraries,
+    find_header_files,
+    compress_lcov_file,
+)
 from modules.Coverage import LibCoverage
 from modules.logging_config import logging
 from modules.DocGen import DocGen
 import sys
 
 
-def upload_data(coverage_data: dict, header_files: list, api_key: str, archive_path: str | None = None):
+def upload_data(
+    coverage_data: dict,
+    header_files: list,
+    api_key: str,
+    archive_path: str | None = None,
+):
     """Upload coverage data to the endpoint using multipart/form-data."""
     url = "https://callback-373812666155.europe-west2.run.app"
     # Prepare multipart form data
@@ -19,7 +30,7 @@ def upload_data(coverage_data: dict, header_files: list, api_key: str, archive_p
     data = {
         "api_key": api_key,
         "coverage": json.dumps(coverage_data),
-        "headers": json.dumps(header_files)
+        "headers": json.dumps(header_files),
     }
     if archive_path:
         # Determine content type based on file extension
@@ -56,48 +67,42 @@ def upload_data(coverage_data: dict, header_files: list, api_key: str, archive_p
             return False
 
 
-def create_gcov_archive(
-    coverage_instance: LibCoverage,
-    output_path: str | None = None,
-    archive_name: str = "coverage_data.tar.xz",
-) -> str | None:
+def generate_lcov_info(library_dir: str, output_file: str) -> bool:
     """
-    Create a compressed .tar.xz archive of all collected .gcov files for upload.
-
-    This function uses the Utils.compress_gcov_files function to create a .tar.xz
-    archive containing all the .gcov files that were generated during
-    coverage analysis. The archive can be uploaded to a server for
-    further processing or storage.
+    Generate lcov coverage info file using lcov command.
 
     Args:
-        coverage_instance (LibCoverage): LibCoverage instance containing gcov_files
-        output_path (str, optional): Directory where the archive file should be created.
-                                    If None, uses a temporary directory.
-        archive_name (str, optional): Name of the archive file.
-                                    Defaults to "coverage_data.tar.xz".
+        library_dir (str): Root path of the location of the library
+        output_file (str): Path to the output .info file
 
     Returns:
-        str: Path to the created archive file, or None if no .gcov files exist
-
-    Raises:
-        FileNotFoundError: If any of the .gcov files don't exist
-        OSError: If there are issues creating the archive file
+        bool: True if successful, False otherwise
     """
-    if not coverage_instance.gcov_files:
-        logging.warning(
-            "No .gcov files available for archiving. Run run_gcov_on_gcno_files() first."
-        )
-        return None
-
-    logging.info(
-        f"Creating gcov archive with {len(coverage_instance.gcov_files)} files"
-    )
-    return compress_gcov_files(
-        coverage_instance.gcov_files,
-        output_path,
-        archive_name,
-        coverage_instance._root_dir,
-    )
+    try:
+        cmd = [
+            "lcov",
+            "--rc",
+            "lcov_branch_coverage=1",
+            "-c",
+            "--directory",
+            library_dir,
+            "--output-file",
+            output_file,
+        ]
+        logging.info(f"Running lcov command: {' '.join(cmd)}")
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+        logging.info(f"lcov output: {result.stdout}")
+        if result.stderr:
+            logging.warning(f"lcov stderr: {result.stderr}")
+        logging.info(f"Successfully generated lcov info file: {output_file}")
+        return True
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Failed to run lcov: {e}")
+        logging.error(f"lcov stderr: {e.stderr}")
+        return False
+    except FileNotFoundError:
+        logging.error("lcov command not found. Please ensure lcov is installed.")
+        return False
 
 
 def main():
@@ -122,6 +127,12 @@ def main():
         action=argparse.BooleanOptionalAction,
         default=True,
         help="Use XML mode for DocGen (default: True)",
+    )
+    parser.add_argument(
+        "--compile",
+        type=str,
+        default=None,
+        help="Compiler type (e.g., gcc). If set to 'gcc', lcov will be used to generate coverage info",
     )
 
     args = parser.parse_args()
@@ -150,16 +161,22 @@ def main():
             logging.error(f"Error: doxygen_path does not exist: {args.doxygen_path}")
             sys.exit(1)
 
-    logging.info(f"Looking for shared libraries in the install directory: {install_dir}")
+    logging.info(
+        f"Looking for shared libraries in the install directory: {install_dir}"
+    )
 
     # Check if include directory exists within install_dir
-    include_dir = os.path.join(install_dir, 'include')
+    include_dir = os.path.join(install_dir, "include")
     if os.path.isdir(include_dir):
         header_search_dir = include_dir
-        logging.info(f"Found include directory, searching for headers in: {include_dir}")
+        logging.info(
+            f"Found include directory, searching for headers in: {include_dir}"
+        )
     else:
         header_search_dir = install_dir
-        logging.info(f"No include directory found, searching for headers in: {install_dir}")
+        logging.info(
+            f"No include directory found, searching for headers in: {install_dir}"
+        )
 
     header_files = find_header_files(header_search_dir)
     logging.info("Header files found: %s", header_files)
@@ -243,13 +260,43 @@ def main():
             no_doc_apis,
         )
 
-    # Create gcov archive for upload
-    logging.info("Creating gcov archive for upload")
-    archive_path = create_gcov_archive(entry_cov, archive_name="coverage_data.tar.xz")
-    if archive_path:
-        logging.info(f"Gcov archive created successfully: {archive_path}")
+    # Create archive for upload based on compiler type
+    archive_path = None
+    if args.compile and args.compile.lower() == "gcc":
+        logging.info("Compiler type is gcc, using lcov to generate coverage info")
+        baseline_info = os.path.join(project_dir, "baseline.info")
+        if generate_lcov_info(project_dir, baseline_info):
+            logging.info("Creating lcov archive for upload")
+            archive_path = compress_lcov_file(
+                baseline_info,
+                output_path=project_dir,
+                archive_name="coverage_data.tar.xz",
+            )
+            if archive_path:
+                logging.info(f"Lcov archive created successfully: {archive_path}")
+            else:
+                logging.warning("Failed to create lcov archive")
+        else:
+            logging.error("Failed to generate lcov info file")
     else:
-        logging.warning("Failed to create gcov archive")
+        if args.compile:
+            logging.info(
+                f"Compiler type '{args.compile}' is not gcc, skipping coverage file generation"
+            )
+        else:
+            logging.info(
+                "No compiler type specified, skipping coverage file generation"
+            )
+        # Create an empty tar file to avoid uploading huge gcov files
+        logging.info("Creating empty archive placeholder")
+        archive_path = os.path.join(project_dir, "coverage_data.tar.xz")
+        try:
+            with tarfile.open(archive_path, "w:xz"):
+                pass  # Create empty archive
+            logging.info(f"Empty archive created: {archive_path}")
+        except Exception as e:
+            logging.error(f"Failed to create empty archive: {e}")
+            archive_path = None
 
     # Upload coverage data if API key is provided
     if args.api_key:

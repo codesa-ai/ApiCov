@@ -11,7 +11,7 @@ if PROJECT_ROOT not in sys.path:
 from modules.Coverage import LibCoverage  # noqa: E402
 from modules.ExportFetcher import ExportFetcher  # noqa: E402
 from modules.Utils import find_shared_libraries  # noqa: E402
-from modules.Utils import find_header_files
+from modules.Utils import find_header_files  # noqa: E402
 from modules.logging_config import logging  # noqa: E402
 from apicov import upload_data  # noqa: E402
 from modules.DocGen import DocGen  # noqa: E402
@@ -277,6 +277,7 @@ def test_convert_html_directory_to_xml():
                             f"XML file {xml_path} is not valid XML or is empty"
                         )
 
+
 def test_find_header_files():
     """
     Test find_header_files function to verify it correctly finds C/C++ header files.
@@ -303,10 +304,20 @@ def test_find_header_files():
             f"Header path should be relative: {header}"
         )
         # Check that it's actually a header file
-        assert any(header.lower().endswith(ext) for ext in [
-            '.h', '.hpp', '.hxx', '.h++', '.hh',
-            '.tpp', '.ipp', '.inl', '.inc'
-        ]), f"File {header} doesn't have a valid header extension"
+        assert any(
+            header.lower().endswith(ext)
+            for ext in [
+                ".h",
+                ".hpp",
+                ".hxx",
+                ".h++",
+                ".hh",
+                ".tpp",
+                ".ipp",
+                ".inl",
+                ".inc",
+            ]
+        ), f"File {header} doesn't have a valid header extension"
 
     # Log some of the found headers for debugging
     for header in headers[:5]:  # Show first 5 headers
@@ -320,6 +331,7 @@ def test_find_header_files():
     assert len(all_headers) >= len(headers), (
         "Project directory should contain at least as many headers as include directory"
     )
+
 
 def main():
     logging.info("Starting tests...")
