@@ -25,6 +25,13 @@ inputs:
   compile:
     description: 'Compiler type (e.g., gcc). If set to "gcc", lcov will be used to generate coverage info'
     required: false
+  api_source:
+    description: 'Source for API extraction: "shared-libs" (default) extracts from shared library exports, "headers" parses header files directly (useful for C++ vtables)'
+    required: false
+    default: 'shared-libs'
+  headers_dir:
+    description: 'Path to directory containing header files. If not provided, defaults to install_path/include or install_path'
+    required: false
 
 runs:
   using: "composite"
@@ -47,6 +54,8 @@ runs:
         echo "Debug: doxygen_path = ${{ inputs.doxygen_path != '' && inputs.doxygen_path || 'not set' }}"
         echo "Debug: xml = ${{ inputs.xml != '' && inputs.xml || 'not set' }}"
         echo "Debug: compile = ${{ inputs.compile != '' && inputs.compile || 'not set' }}"
+        echo "Debug: api_source = ${{ inputs.api_source != '' && inputs.api_source || 'not set' }}"
+        echo "Debug: headers_dir = ${{ inputs.headers_dir != '' && inputs.headers_dir || 'not set' }}"
         echo "Debug: GITHUB_ACTION_PATH = $GITHUB_ACTION_PATH"
       shell: bash
 
@@ -75,6 +84,16 @@ runs:
         # Only add compile if it's not empty
         if [ -n "${{ inputs.compile }}" ]; then
           CMD="$CMD --compile \"${{ inputs.compile }}\""
+        fi
+        
+        # Only add api_source if it's not empty and not the default
+        if [ -n "${{ inputs.api_source }}" ] && [ "${{ inputs.api_source }}" != "shared-libs" ]; then
+          CMD="$CMD --api-source \"${{ inputs.api_source }}\""
+        fi
+        
+        # Only add headers_dir if it's not empty
+        if [ -n "${{ inputs.headers_dir }}" ]; then
+          CMD="$CMD --headers-dir \"${{ inputs.headers_dir }}\""
         fi
         
         echo "Debug: Full command: $CMD"
