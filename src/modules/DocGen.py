@@ -254,6 +254,10 @@ class DocGen:
 
         The documentation is merged into a single string per API with clear sections.
 
+        This method handles both:
+        - Regular functions (memberdef kind='function')
+        - Function pointers in C structs (memberdef kind='variable' with argsstring)
+
         Args:
             apis (List[str]): List of API function names to extract documentation for
 
@@ -270,18 +274,33 @@ class DocGen:
             try:
                 tree = ET.parse(xml_file)
                 xmlroot = tree.getroot()
+                # Find both functions and function pointers (variables with argsstring)
+                # LibreOfficeKit uses C-style function pointers in structs
                 memberdefs = xmlroot.findall(".//memberdef[@kind='function']")
+                # Also get variables that are function pointers
+                variable_defs = xmlroot.findall(".//memberdef[@kind='variable']")
+                # Filter to only include function pointers (have non-empty argsstring with ')')
+                func_ptr_defs = [
+                    v for v in variable_defs
+                    if v.findtext("argsstring") and ")" in v.findtext("argsstring", "")
+                ]
+                memberdefs.extend(func_ptr_defs)
                 for member in memberdefs:
                     func_name = member.findtext("name")
                     if func_name not in apis:
                         continue
-                    definition = member.findtext("definition")
-                    argsstring = member.findtext("argsstring")
-                    proto = (
-                        f"{definition}{argsstring}"
-                        if definition and argsstring
-                        else definition or ""
-                    )
+                    definition = member.findtext("definition") or ""
+                    argsstring = member.findtext("argsstring") or ""
+                    # For function pointers, argsstring starts with ')' and definition
+                    # already contains the full signature - don't append argsstring
+                    # For regular functions, argsstring starts with '(' and needs to be appended
+                    if argsstring.startswith(")"):
+                        # Function pointer - definition already has full prototype
+                        proto = definition
+                    elif definition and argsstring:
+                        proto = f"{definition}{argsstring}"
+                    else:
+                        proto = definition
                     brief = self.extract_all_paras(member.find("briefdescription"))
                     detailed = self.extract_all_paras(
                         member.find("detaileddescription")
