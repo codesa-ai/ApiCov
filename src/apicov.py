@@ -58,7 +58,7 @@ def upload_data(
             files["coverage_files"][1].close()
     else:
         try:
-            response = requests.post(url, data=data, files=None)
+            response = requests.post(url, data=data, files={})
             response.raise_for_status()
             logging.info("Successfully uploaded coverage data")
             return True
