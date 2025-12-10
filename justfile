@@ -29,7 +29,6 @@ build:
   --clean \
   --strip \
   --noconfirm \
-  --add-binary "/usr/lib/x86_64-linux-gnu/libm.so.6:." \
   --hidden-import=gcov \
   --hidden-import=modules \
   --hidden-import=requests \

@@ -266,8 +266,10 @@ def main():
     no_cov_apis = []
     no_doc_apis = []
     for api in lib_exports.apis:
+        # Always create an entry for each API, even if missing size/doc info
+        json_data[api] = {}
+        
         if api in entry_cov.api_sizes:
-            json_data[api] = {}
             json_data[api]["full_size"] = entry_cov.api_sizes[api]
             json_data[api]["covered_lines"] = entry_cov.api_coverage[api]
         else:
