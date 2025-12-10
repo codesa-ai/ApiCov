@@ -16,6 +16,7 @@ from modules.logging_config import logging
 from modules.DocGen import DocGen
 import sys
 
+UPLOAD_URL = "https://callback-373812666155.europe-west2.run.app"
 
 def upload_data(
     coverage_data: dict,
@@ -24,30 +25,31 @@ def upload_data(
     archive_path: str | None = None,
 ):
     """Upload coverage data to the endpoint using multipart/form-data."""
-    url = "https://callback-373812666155.europe-west2.run.app"
     # Prepare multipart form data
-    files = {}
     data = {
         "api_key": api_key,
         "coverage": json.dumps(coverage_data),
         "headers": json.dumps(header_files),
     }
+    logging.info(f"Uploading data to {UPLOAD_URL}")
+    logging.info(f"Data: {data}")
+    logging.info(f"Archive path: {archive_path}")
     if archive_path:
         # Determine content type based on file extension
         if archive_path.endswith(".tar.xz") or archive_path.endswith(".txz"):
+            logging.info("Content type: application/x-xz")
             content_type = "application/x-xz"
         elif archive_path.endswith(".tgz") or archive_path.endswith(".tar.gz"):
+            logging.info("Content type: application/gzip")
             content_type = "application/gzip"
         else:
+            logging.info("Content type: application/octet-stream")
             content_type = "application/octet-stream"
 
-        files["coverage_files"] = (
-            os.path.basename(archive_path),
-            open(archive_path, "rb"),
-            content_type,
-        )
+        files = {"coverage_files": (os.path.basename(archive_path), open(archive_path, "rb"), content_type)}
         try:
-            response = requests.post(url, data=data, files=files)
+            logging.info("Attempting to upload coverage data")
+            response = requests.post(UPLOAD_URL, data=data, files=files)
             response.raise_for_status()
             logging.info("Successfully uploaded coverage data")
             return True
@@ -58,7 +60,8 @@ def upload_data(
             files["coverage_files"][1].close()
     else:
         try:
-            response = requests.post(url, data=data, files={})
+            logging.info("Uploading empty files")
+            response = requests.post(UPLOAD_URL, data=data, files={})
             response.raise_for_status()
             logging.info("Successfully uploaded coverage data")
             return True
