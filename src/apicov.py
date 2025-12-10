@@ -82,7 +82,7 @@ def generate_lcov_info(library_dir: str, output_file: str) -> bool:
         cmd = [
             "lcov",
             "--rc",
-            "lcov_branch_coverage=1",
+            "branch_coverage=1",
             "-c",
             "--directory",
             library_dir,
