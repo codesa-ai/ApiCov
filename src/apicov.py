@@ -92,19 +92,7 @@ def generate_lcov_info(library_dir: str, output_file: str) -> bool:
             output_file,
         ]
         logging.info(f"Running lcov command: {' '.join(cmd)}")
-        
-        # Create a clean environment to avoid PyInstaller library conflicts
-        clean_env = os.environ.copy()
-        if 'LD_LIBRARY_PATH' in clean_env:
-            del clean_env['LD_LIBRARY_PATH']
-        
-        result = subprocess.run(
-            cmd, 
-            check=True, 
-            capture_output=True, 
-            text=True,
-            env=clean_env
-        )
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
         logging.info(f"lcov output: {result.stdout}")
         if result.stderr:
             logging.warning(f"lcov stderr: {result.stderr}")
