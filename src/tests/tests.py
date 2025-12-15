@@ -67,8 +67,9 @@ def test_upload_data():
     logging.info("Testing upload_data function")
 
     # Sample coverage data
-    coverage_data = {"test_api": {"full_size": 100, "covered_lines": 50}}
+    coverage_data = {"test_file.h": {"test_api": {"full_size": 100, "covered_lines": 50}}}
     api_key = "test_api_key"
+    header_files = ["test_file.h"]
 
     # Mock response object
     mock_response = mock.Mock()
@@ -76,13 +77,13 @@ def test_upload_data():
 
     # Test successful upload
     with mock.patch("requests.post", return_value=mock_response) as mock_post:
-        result = upload_data(coverage_data, api_key)
+        result = upload_data(coverage_data, header_files, api_key)
         assert result is True, "Upload should succeed"
 
         # Verify the request was made with correct parameters
         mock_post.assert_called_once()
         args, kwargs = mock_post.call_args
-        assert args[0] == "https://callback-373812666155.europe-west2.run.app/upload"
+        assert args[0] == "https://callback-373812666155.europe-west2.run.app"
         assert "data" in kwargs
         assert kwargs["data"]["api_key"] == api_key
         assert json.loads(kwargs["data"]["coverage"]) == coverage_data
@@ -91,7 +92,7 @@ def test_upload_data():
     with mock.patch(
         "requests.post", side_effect=requests.exceptions.RequestException("Test error")
     ) as mock_post:
-        result = upload_data(coverage_data, api_key)
+        result = upload_data(coverage_data, header_files, api_key)
         assert result is False, "Upload should fail"
         mock_post.assert_called_once()
 

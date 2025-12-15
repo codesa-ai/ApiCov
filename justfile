@@ -23,7 +23,7 @@ test-prep:
 test:
   pytest src/tests/tests.py -v
 
-# Build binary
+# Build binary -- ONLU USE FOR LOCAL BUILDING - BUILDS FOR THE ACTION ARE DONE IN THE RELEASE WORKFLOW
 build:
   . .venv/bin/activate && .venv/bin/python -m PyInstaller --onefile \
   --clean \
