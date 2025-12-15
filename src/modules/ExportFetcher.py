@@ -6,6 +6,7 @@ import subprocess
 
 from modules.logging_config import logging
 
+from modules.Utils import CXX_HEADERS_EXT, C_HEADERS_EXT, ALL_HEADERS_EXT
 
 class ExportFetcher(object):
     """
@@ -36,7 +37,7 @@ class ExportFetcher(object):
 
     def __init__(self):
         self.symbols = []
-        self.apis = []
+        self.apis = {}
         self.headers = []
         self.function_names = set()  # Track already seen function names
 
@@ -51,11 +52,7 @@ class ExportFetcher(object):
         """
         for root, _, files in os.walk(install_dir):
             for file in files:
-                if (
-                    file.endswith(".h")
-                    or file.endswith(".hpp")
-                    or file.endswith(".hxx")
-                ):
+                if (any(file.endswith(ext) for ext in ALL_HEADERS_EXT)):
                     header = os.path.join(root, file)
                     logging.debug(
                         "Searching for symbol: %s in header: %s", symbol, header
@@ -64,7 +61,11 @@ class ExportFetcher(object):
                     result = subprocess.run(cmd, capture_output=True, text=True)
                     if result.returncode == 0:
                         logging.info("Adding Api: %s", symbol)
-                        self.apis.append(symbol)
+                        if file in self.apis:
+                            if symbol not in self.apis[file]:
+                                self.apis[file].append(symbol)
+                        else:
+                            self.apis[file] = [symbol]
                         return
 
     def filter_non_apis(self, install_dir: str) -> None:
@@ -170,12 +171,10 @@ class ExportFetcher(object):
                     # m_foo pattern (underscore style)
                     if fn_name.startswith('m_'):
                         continue
-                if fn_name not in self.function_names:
-                    self.function_names.add(fn_name)
-                    self.symbols.append(fn_name)
+                if fn_name not in found_functions:
                     found_functions.append(fn_name)
         
-        return found_functions
+        return list(set(found_functions))
 
     def get_apis_from_headers(self, header_dir: str) -> list:
         """
@@ -189,11 +188,12 @@ class ExportFetcher(object):
         Returns:
             list: List of API function names found in headers.
         """
-        header_extensions = ('.h', '.hpp', '.hxx', '.h++', '.hh')
+
+        apis = {}
         
         for root, _, files in os.walk(header_dir):
             for file in files:
-                if any(file.endswith(ext) for ext in header_extensions):
+                if (any(file.endswith(ext) for ext in ALL_HEADERS_EXT)):
                     header_path = os.path.join(root, file)
                     logging.debug("Parsing header file for APIs: %s", header_path)
                     try:
@@ -209,28 +209,22 @@ class ExportFetcher(object):
                             found = self.find_functions_in_file(file_data)
                             if found:
                                 logging.debug("Found %d functions in %s", len(found), header_path)
+                                if file.endswith(tuple(CXX_HEADERS_EXT)):
+                                    if "cxx_apis" not in apis:
+                                        apis["cxx_apis"] = {}
+                                    apis["cxx_apis"][file] = found
+                                if file.endswith(tuple(C_HEADERS_EXT)):
+                                    if "c_apis" not in apis:
+                                        apis["c_apis"] = {}
+                                    apis["c_apis"][file] = found
                     except Exception as e:
                         logging.warning("Failed to parse header %s: %s", header_path, e)
         
         # In header mode, all found symbols are considered APIs
-        self.apis = list(self.symbols)
+        
+        self.apis = dict(apis.values())
         logging.info("Found %d APIs from header files", len(self.apis))
-        return self.apis
-
-    def _add_functions(self, output: str) -> None:
-        """
-        Process the output (string) from a command or file, extracting function names (APIs) from each line and adding
-        them to the list of discovered symbols (self.symbols) if not already present.
-
-        Args:
-            output (str): Output containing function names, one per line.
-        """
-        for line in output.split("\n"):
-            api = line.split(":")[-1]
-            if api == "":
-                continue
-            if api not in self.function_names:
-                self.symbols.append(api.strip())
+        return apis
 
     def _add_symbol(self, symbol: str) -> None:
         """
@@ -295,93 +289,6 @@ class ExportFetcher(object):
         # proc1.stdout.close()
         return proc2.returncode
 
-    def find_build_dir(self) -> str:
-        """
-        Attempt to locate the build directory within the project by checking common directory names (build, out, bin)
-        and by searching for build system files (CMakeCache.txt, build.ninja). Returns the path to the build directory
-        or the root directory if none is found.
-
-        Returns:
-            str: Path to the build directory.
-        """
-        common_build_dirs = ["build", "out", "bin"]
-        for build_dir in common_build_dirs:
-            potential_dir = os.path.join(self._root_dir, build_dir)
-            if os.path.isdir(potential_dir):
-                return potential_dir
-
-        # Recursively search for specific build system files
-        for dirpath, _, filenames in os.walk(self._root_dir):
-            if "CMakeCache.txt" in filenames or "build.ninja" in filenames:
-                return dirpath
-
-        return self._root_dir
-
-    def get_install_headers(self, build_system: str) -> None:
-        """
-        Run the appropriate dry-run install command for the given build system to discover which header files would be
-        installed. Populates self.headers with the paths of header files.
-
-        Args:
-            build_system (str): The build system in use (make, cmake, ninja, or meson).
-
-        Raises:
-            ValueError: If the build system is unsupported.
-        """
-        build_dir = self.find_build_dir()
-        if build_system in ["make", "cmake"]:
-            cmd = ["make", "install", "-n"]
-        elif build_system == "ninja":
-            cmd = ["ninja", "install", "-n"]
-        elif build_system == "meson":
-            cmd = ["meson", "install", "--dry-run"]
-        else:
-            raise ValueError("Unsupported build system")
-
-        logging.debug("Running cmd: %s in %s", " ".join(cmd), build_dir)
-        result = subprocess.run(cmd, cwd=build_dir, capture_output=True, text=True)
-        if result.returncode != 0:
-            logging.error("Failed to run dry-run install command")
-            return
-
-        for line in result.stdout.split("\n"):
-            if line.endswith(".h") or line.endswith(".hpp") or line.endswith(".hxx"):
-                self.headers.append(line.strip())
-
-    def run_install_command(self, build_system: str) -> None:
-        """
-        Run the actual install command for the given build system, setting the DESTDIR environment variable to
-        /usr/local to control the installation location.
-
-        Args:
-            build_system (str): The build system in use (make, cmake, ninja, or meson).
-
-        Raises:
-            ValueError: If the build system is unsupported.
-            subprocess.CalledProcessError: If the install command fails.
-        """
-        build_dir = self.find_build_dir()
-        env = os.environ.copy()
-        env["DESTDIR"] = "/usr/local"
-
-        if build_system in ["make", "cmake"]:
-            cmd = ["make", "install"]
-        elif build_system == "ninja":
-            cmd = ["ninja", "install"]
-        elif build_system == "meson":
-            cmd = ["meson", "install"]
-        else:
-            raise ValueError("Unsupported build system")
-
-        logging.debug("Running install cmd: %s in %s", " ".join(cmd), build_dir)
-        result = subprocess.run(
-            cmd, cwd=build_dir, env=env, capture_output=True, text=True
-        )
-        if result.returncode != 0:
-            logging.error("Failed to run install command")
-            raise subprocess.CalledProcessError(result.returncode, cmd)
-
-
 if __name__ == "__main__":
     d = ExportFetcher()
     # d.crawl_dir(sys.argv[1], sys.argv[2])
@@ -389,17 +296,26 @@ if __name__ == "__main__":
 
     json_data = {}
     exports = []
-    shared_libs = sys.argv[1].split(",")
-    for lib in shared_libs:
-        d.get_exports_from_lib(lib)
 
-    install_dirs = sys.argv[2].split(",")
-    for install_dir in install_dirs:
-        d.filter_non_apis(install_dir)
-    json_data["library"] = d.apis
+    headers_dir = sys.argv[1]
+    d.get_apis_from_headers(headers_dir)
+    json_data["apis"] = d.apis
     with open("apis.json", "w") as fh:
         json.dump(json_data, fh)
 
-    with open("apis.txt", "w") as fh:
-        for fn in d.apis:
-            fh.write(fn + "\n")
+    
+
+    # shared_libs = sys.argv[1].split(",")
+    # for lib in shared_libs:
+    #     d.get_exports_from_lib(lib)
+
+    # install_dirs = sys.argv[2].split(",")
+    # for install_dir in install_dirs:
+    #     d.filter_non_apis(install_dir)
+    # json_data["library"] = d.apis
+    # with open("apis.json", "w") as fh:
+    #     json.dump(json_data, fh)
+
+    # with open("apis.txt", "w") as fh:
+    #     for fn in d.apis:
+    #         fh.write(fn + "\n")

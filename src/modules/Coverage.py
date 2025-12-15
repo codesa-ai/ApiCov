@@ -56,6 +56,7 @@ class LibCoverage:
             apis (List[str]): List of API function names to analyze for coverage
             lib_path (str): Path to the library root directory containing .gcno files
         """
+
         self._apis = apis
         self.api_coverage = {}
         self._root_dir = os.path.abspath(lib_path)

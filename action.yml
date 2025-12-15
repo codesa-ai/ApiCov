@@ -101,15 +101,6 @@ runs:
         eval "$CMD"
       shell: bash
 
-    - name: Debug - List files
-      run: |
-        echo "=== Listing root_path directory ==="
-        ls -la ${{ inputs.root_path }}
-        echo ""
-        echo "=== Searching for JSON files ==="
-        find ${{ inputs.root_path }} -name "*.json" -o -name "*.tgz"
-      shell: bash
-
     - name: "Upload JSON files"
       uses: actions/upload-artifact@v4
       with:
