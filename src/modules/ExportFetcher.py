@@ -221,10 +221,14 @@ class ExportFetcher(object):
                         logging.warning("Failed to parse header %s: %s", header_path, e)
         
         # In header mode, all found symbols are considered APIs
-        
-        self.apis = dict(apis.values())
-        logging.info("Found %d APIs from header files", len(self.apis))
-        return apis
+        # Merge all category dictionaries (cxx_apis, c_apis) into self.apis
+        self.apis = {}
+        for category_apis in apis.values():
+            self.apis.update(category_apis)
+        logging.info("Extracted APIs from %d header files", len(self.apis))
+        for file, apis in self.apis.items():
+            logging.info("Found %d APIs in %s", len(apis), file)
+        return self.apis
 
     def _add_symbol(self, symbol: str) -> None:
         """
