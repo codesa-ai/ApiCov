@@ -3,6 +3,10 @@ import tarfile
 from modules.logging_config import logging
 
 
+CXX_HEADERS_EXT = ['.hpp', '.hxx', '.h++', '.hh']
+C_HEADERS_EXT = ['.h']
+ALL_HEADERS_EXT = CXX_HEADERS_EXT + C_HEADERS_EXT
+
 def identify_build_system(project_dir):
     """
     Identifies the build system used in the given project directory.
@@ -57,22 +61,12 @@ def find_header_files(root_dir):
     Returns:
         list: A list of relative paths to the header files from the root directory.
     """
-    header_extensions = (
-        ".h",  # C/C++ header
-        ".hpp",  # C++ header
-        ".hxx",  # C++ header
-        ".h++",  # C++ header
-        ".hh",  # C++ header
-        ".tpp",  # C++ template implementation
-        ".ipp",  # C++ inline implementation
-        ".inl",  # C++ inline header
-        ".inc",  # Include file
-    )
+
 
     headers = []
     for dirpath, dirnames, filenames in os.walk(root_dir):
         for filename in filenames:
-            if any(filename.lower().endswith(ext) for ext in header_extensions):
+            if any(filename.lower().endswith(ext) for ext in ALL_HEADERS_EXT):
                 # Get relative path from root_dir
                 rel_path = os.path.relpath(os.path.join(dirpath, filename), root_dir)
                 headers.append(rel_path)

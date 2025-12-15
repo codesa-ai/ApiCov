@@ -252,7 +252,11 @@ def main():
     with open(api_file, "w") as fh:
         json.dump(json_data, fh)
 
-    entry_cov = LibCoverage(lib_exports.apis, project_dir)
+    all_apis = []
+    for file, apis in lib_exports.apis.items():
+        for api in apis:
+            all_apis.append(api)
+    entry_cov = LibCoverage(all_apis, project_dir)
     logging.info("Running gcov to identify API sizes and coverage")
     entry_cov.run_gcov_on_gcno_files()
     logging.info("Populate API sizes and coverage")
@@ -262,7 +266,7 @@ def main():
         logging.info("Generating API documentation")
         doxygen_path = os.path.abspath(os.path.expanduser(args.doxygen_path))
         doc_gen = DocGen(doxygen_path, xml=args.xml)
-        apidoc = doc_gen.generate_apidoc(lib_exports.apis)
+        apidoc = doc_gen.generate_apidoc(all_apis)
     else:
         logging.info("No Doxygen path provided, skipping API documentation generation")
         apidoc = None
@@ -270,25 +274,27 @@ def main():
     json_data = {}
     no_cov_apis = []
     no_doc_apis = []
-    for api in lib_exports.apis:
-        # Always create an entry for each API with default values
-        json_data[api] = {
-            "full_size": 0,
-            "covered_lines": 0
-        }
-        
-        if api in entry_cov.api_sizes:
-            json_data[api]["full_size"] = entry_cov.api_sizes[api]
-            json_data[api]["covered_lines"] = entry_cov.api_coverage[api]
-        else:
-            logging.error("Failed to find size for API: %s", api)
-            no_cov_apis.append(api)
+    for file, apis in lib_exports.apis.items():
+        json_data[file] = {}
+        for api in apis:
+            # Always create an entry for each API with default values
+            json_data[file][api] = {
+                "full_size": 0,
+                "covered_lines": 0
+            }
+            
+            if api in entry_cov.api_sizes:
+                json_data[file][api]["full_size"] = entry_cov.api_sizes[api]
+                json_data[file][api]["covered_lines"] = entry_cov.api_coverage[api]
+            else:
+                logging.error("Failed to find size for API: %s", api)
+                no_cov_apis.append(api)
 
-        if apidoc and api in apidoc:
-            json_data[api]["apidoc"] = apidoc[api]
-        else:
-            logging.error("Failed to find documentation for API: %s", api)
-            no_doc_apis.append(api)
+            if apidoc and api in apidoc:
+                json_data[file][api]["apidoc"] = apidoc[api]
+            else:
+                logging.error("Failed to find documentation for API: %s", api)
+                no_doc_apis.append(api)
 
     apicov_file = os.path.join(args.project_dir, "api_coverage.json")
     logging.info("Writing API data to: %s", apicov_file)
