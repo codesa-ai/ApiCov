@@ -128,7 +128,7 @@ class ExportFetcher(object):
         
         # Pattern for C++ method declarations (including virtual methods for vtables)
         # Matches: virtual return_type method_name(params) [const] [= 0];
-        cpp_pattern = r"^\s*(?:virtual\s+)(?:const\s+)?[\w\s*&]+?\s+(\w+)\s*\([^)]*\)\s*(?:const)?\s*(?:override)?\s*(?:=\s*0)?\s*;"
+        cpp_pattern = r"^\s*(?:virtual\s+)(?:const\s+)?[\w\s*&]+?\s+[*&]?\s*(\w+)\s*\([^)]*\)\s*(?:const)?\s*(?:override)?\s*(?:=\s*0)?\s*;"
         
         # Pattern for function pointer typedefs in structs (vtable style APIs)
         # Matches: return_type (*function_name) (params);
@@ -136,11 +136,12 @@ class ExportFetcher(object):
         
         # Pattern for C++ class methods with inline bodies
         # Matches: return_type method_name(params) { ... } or return_type method_name(params) const { ... }
-        cpp_inline_pattern = r"^\s*(?:virtual\s+)?(?:static\s+|inline\s+)?(?:const\s+)?[\w\s*&:<>]+?\s+(\w+)\s*\([^)]*\)\s*(?:const)?\s*(?:override)?\s*(?:noexcept)?\s*\{"
+        # The [*&]?\s* handles pointer/reference attached to function name (e.g., Type *get() {})
+        cpp_inline_pattern = r"^\s*(?:virtual\s+)?(?:static\s+|inline\s+)?(?:const\s+)?[\w\s*&:<>]+?\s+[*&]?\s*(\w+)\s*\([^)]*\)\s*(?:const)?\s*(?:override)?\s*(?:noexcept)?\s*\{"
         
         # Pattern for multi-line function declarations (captures function name from first line)
         # Matches: return_type function_name( on its own line (params continue on next lines)
-        multiline_pattern = r"^\s*(?:virtual\s+)?(?:static\s+|inline\s+)?(?:const\s+)?[\w\s*&:<>]+?\s+(\w+)\s*\([^)]*,$"
+        multiline_pattern = r"^\s*(?:virtual\s+)?(?:static\s+|inline\s+)?(?:const\s+)?[\w\s*&:<>]+?\s+[*&]?\s*(\w+)\s*\([^)]*,$"
         
         for pattern in [export_pattern, c_pattern, cpp_pattern, vtable_pattern, cpp_inline_pattern, multiline_pattern]:
             regex = re.compile(pattern, re.MULTILINE)
