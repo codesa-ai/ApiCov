@@ -293,7 +293,7 @@ def main():
             if apidoc and api in apidoc:
                 json_data[file][api]["apidoc"] = apidoc[api]
             else:
-                logging.error("Failed to find documentation for API: %s", api)
+                logging.warning("Failed to find documentation for API: %s", api)
                 no_doc_apis.append(api)
 
     apicov_file = os.path.join(args.project_dir, "api_coverage.json")
@@ -307,7 +307,7 @@ def main():
         )
 
     if no_doc_apis:
-        logging.error(
+        logging.warning(
             "Failed to find documentation for %d APIs: %s",
             len(no_doc_apis),
             no_doc_apis,

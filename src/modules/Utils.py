@@ -1,6 +1,6 @@
 import os
 import tarfile
-from modules.logging_config import logging
+from src.modules.logging_config import logging
 
 
 CXX_HEADERS_EXT = ['.hpp', '.hxx', '.h++', '.hh']

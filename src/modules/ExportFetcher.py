@@ -4,9 +4,11 @@ import sys
 import json
 import subprocess
 
-from modules.logging_config import logging
+from tree_sitter import Parser, Language
+import tree_sitter_cpp as tscpp
 
-from modules.Utils import CXX_HEADERS_EXT, C_HEADERS_EXT, ALL_HEADERS_EXT
+from src.modules.logging_config import logging
+from src.modules.Utils import CXX_HEADERS_EXT, C_HEADERS_EXT, ALL_HEADERS_EXT
 
 class ExportFetcher(object):
     """
@@ -47,17 +49,24 @@ class ExportFetcher(object):
         If the symbol is found in any header, it is added to the list of API symbols (self.apis).
 
         Args:
-            symbol (str): The symbol name to search for.
+            symbol (str): The symbol name to search for (can be fully qualified like lok::Document::saveAs).
             install_dir (str): The root directory to search for header files.
         """
+        # For C++ symbols like lok::Document::saveAs, extract just the method name for grep
+        # but keep the full qualified name for storage
+        if "::" in symbol:
+            search_name = symbol.split("::")[-1]  # Extract method name: saveAs
+        else:
+            search_name = symbol
+        
         for root, _, files in os.walk(install_dir):
             for file in files:
                 if (any(file.endswith(ext) for ext in ALL_HEADERS_EXT)):
                     header = os.path.join(root, file)
                     logging.debug(
-                        "Searching for symbol: %s in header: %s", symbol, header
+                        "Searching for symbol: %s (as %s) in header: %s", symbol, search_name, header
                     )
-                    cmd = ["grep", "-rw", symbol, header]
+                    cmd = ["grep", "-rw", search_name, header]
                     result = subprocess.run(cmd, capture_output=True, text=True)
                     if result.returncode == 0:
                         logging.info("Adding Api: %s", symbol)
@@ -206,14 +215,19 @@ class ExportFetcher(object):
                             file_data = re.sub(r'/\*.*?\*/', '', file_data, flags=re.DOTALL)
                             # Remove preprocessor macros that span multiple lines
                             file_data = re.sub(r'#.*?(?<!\\)\n', '\n', file_data)
-                            
-                            found = self.find_functions_in_file(file_data)
-                            if found:
-                                logging.debug("Found %d functions in %s", len(found), header_path)
-                                if file.endswith(tuple(CXX_HEADERS_EXT)):
-                                    if "cxx_apis" not in apis:
-                                        apis["cxx_apis"] = {}
-                                    apis["cxx_apis"][file] = found
+
+                            if file.endswith(tuple(CXX_HEADERS_EXT)):
+                                found = self._get_tree_sitter_functions(header_path)
+                                if found:
+                                    logging.debug("Found %d functions in %s", len(found), header_path)
+                                    if file.endswith(tuple(CXX_HEADERS_EXT)):
+                                        if "cxx_apis" not in apis:
+                                            apis["cxx_apis"] = {}
+                                        apis["cxx_apis"][file] = found
+                            else:
+                                found = self.find_functions_in_file(file_data)
+                                if found:
+                                    logging.debug("Found %d functions in %s", len(found), header_path)
                                 if file.endswith(tuple(C_HEADERS_EXT)):
                                     if "c_apis" not in apis:
                                         apis["c_apis"] = {}
@@ -230,6 +244,75 @@ class ExportFetcher(object):
         for file, apis in self.apis.items():
             logging.info("Found %d APIs in %s", len(apis), file)
         return self.apis
+
+    def _node_text(self, node):
+        return self._file_data[node.start_byte:node.end_byte].decode()
+
+    def _walk(self, node, namespaces, classes, access):
+        # Enter namespace
+        if node.type == "namespace_definition":
+            name_node = node.child_by_field_name("name")
+            if name_node:
+                namespaces = namespaces + [self._node_text(name_node)]
+
+        # Enter class / struct
+        if node.type in ("class_specifier", "struct_specifier"):
+            name_node = node.child_by_field_name("name")
+            if name_node:
+                classes = classes + [self._node_text(name_node)]
+                # Default access
+                access = "private" if node.type == "class_specifier" else "public"
+
+        # Handle field_declaration_list (class body) - access specifiers are siblings here
+        if node.type == "field_declaration_list":
+            current_access = access
+            for child in node.children:
+                if child.type == "access_specifier":
+                    current_access = self._node_text(child).rstrip(":").strip()
+                else:
+                    self._walk(child, namespaces, classes, current_access)
+            return  # Don't recurse again below
+
+        # Function declaration or inline definition
+        # Capture if: (1) public class member, or (2) standalone function in namespace (not in a class)
+        is_class_member = len(classes) > 0
+        is_namespace_function = len(namespaces) > 0 and not is_class_member
+        should_capture = (access == "public" and is_class_member) or is_namespace_function
+    
+        if should_capture and node.type in ("field_declaration", "function_definition", "declaration"):
+        # Function declaration or inline definition
+            decl = node.child_by_field_name("declarator")
+            
+            # Handle pointer return types: char* foo() -> pointer_declarator -> function_declarator
+            if decl and decl.type == "pointer_declarator":
+                decl = decl.child_by_field_name("declarator")
+            
+            if decl and decl.type == "function_declarator":
+                name = decl.child_by_field_name("declarator")
+                # Inside a class, names are field_identifier; at file scope, they're identifier
+                if name and name.type in ("identifier", "field_identifier"):
+                    func_name = self._node_text(name)
+                    # Skip constructors (name matches class name) and destructors
+                    if classes and func_name == classes[-1]:
+                        pass  # Constructor - skip
+                    else:
+                        fq_name = "::".join(namespaces + classes + [func_name])
+                        self._public_functions.append(fq_name)
+
+        for child in node.children:
+            self._walk(child, namespaces, classes, access)
+
+    def _get_tree_sitter_functions(self, file: str):
+        with open(file, "rb") as fh:
+            file_data = fh.read()
+        parser = Parser(Language(tscpp.language()))
+        tree = parser.parse(file_data)
+        root = tree.root_node
+        self._file_data = file_data
+        self._public_functions = []
+        self._walk(root, [], [], None)
+
+        return self._public_functions
 
     def _add_symbol(self, symbol: str) -> None:
         """
@@ -278,20 +361,19 @@ class ExportFetcher(object):
 
             line = line.strip()
             if "::" in line:
-                # if line.find("operator") != -1:
-                #     continue
-                pattern = r"\w+::(\w+)[\(\[]"
-                regex = re.compile(pattern, re.M)
-                matches = regex.findall(line)
-                for symbol in matches:
+                # Extract fully qualified name: lok::Document::saveAs(...)  -> lok::Document::saveAs
+                # Pattern captures everything before the first ( or [
+                pattern = r"((?:\w+::)+\w+)[\(\[]"
+                regex = re.compile(pattern)
+                match = regex.search(line)
+                if match:
+                    symbol = match.group(1)  # e.g., "lok::Document::saveAs"
                     self._add_symbol(symbol)
             elif line:
                 symbol = line.split()[-1]
                 if symbol == "":
                     continue
                 self._add_symbol(symbol)
-        # proc2 = subprocess.Popen(grep_command, stdin=proc1.stdout, stdout=subprocess.PIPE)
-        # proc1.stdout.close()
         return proc2.returncode
 
 if __name__ == "__main__":

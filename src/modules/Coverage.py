@@ -217,25 +217,25 @@ class LibCoverage:
 
     def _extract_function_name(self, name: str) -> str:
         """
-        Extract just the function/method name from a potentially demangled C++ name.
+        Extract the fully qualified function/method name from a demangled C++ name.
 
         This method is backwards compatible with C code:
         - C functions pass through unchanged (no ::, no mangling)
-        - C++ demangled names are simplified to just the method name
+        - C++ demangled names keep their fully qualified form (namespace::class::method)
 
         Examples:
             C:   'my_function' -> 'my_function' (unchanged)
             C:   'SDL_Init' -> 'SDL_Init' (unchanged)
-            C++: 'lok::Document::saveAs(char const*, char const*)' -> 'saveAs'
-            C++: 'namespace::Class::method()' -> 'method'
-            C++: 'std::vector<int>::push_back(int)' -> 'push_back'
+            C++: 'lok::Document::saveAs(char const*, char const*)' -> 'lok::Document::saveAs'
+            C++: 'lok::Document::getSelectionTypeAndText(...)' -> 'lok::Document::getSelectionTypeAndText'
+            C++: 'std::vector<int>::push_back(int)' -> 'std::vector::push_back'
             C++: 'operator<<(...)' -> 'operator<<'
 
         Args:
             name (str): Function name (C) or demangled C++ function name
 
         Returns:
-            str: Just the function/method name without namespace, class, or parameters
+            str: Fully qualified function/method name without parameters
         """
         # For plain C functions without any special characters, return as-is
         # This ensures backwards compatibility with C code
@@ -257,16 +257,13 @@ class LibCoverage:
             if match:
                 return match.group(1)
 
-        # Get the last component after :: (the actual function/method name)
-        if '::' in clean_name:
-            return clean_name.split('::')[-1]
-
-        return clean_name
+        # Return the fully qualified name (namespace::class::method)
+        return clean_name.strip()
 
     def demangle_cxx_names(self, text: str) -> str:
         """
         Demangle C++ mangled names in the given text using c++filt and extract
-        just the function/method names.
+        just the fully qualified function/method names.
 
         This method is backwards compatible with C code:
         - C function names are not mangled and pass through unchanged
@@ -274,7 +271,7 @@ class LibCoverage:
 
         C++ compilers mangle function names (e.g., _ZN3lok8Document7saveAsEPKcS2_S2_
         becomes lok::Document::saveAs). This method demangles names and extracts
-        just the method name (saveAs) to match our header-based API extraction.
+        just the fully qualified method name (lok::Document::saveAs) to match our header-based API extraction.
 
         Args:
             text (str): Text potentially containing mangled C++ names
@@ -363,7 +360,6 @@ class LibCoverage:
             logging.debug("Processing gcno file: %s", file)
             log_file = file.replace(".gcno", ".gcov_log")
 
-            # Run gcov with options to include source code
             cmd = ["gcov", "-f", "-p", file]
             logging.debug(f"Running gcov command: {' '.join(cmd)}")
             p = subprocess.run(cmd, cwd=self._root_dir, capture_output=True, text=True)
@@ -372,7 +368,7 @@ class LibCoverage:
             logging.debug(f"gcov return code: {p.returncode}")
             logging.debug(f"gcov stdout: {p.stdout[:500]}")  # First 500 chars
             if p.stderr:
-                logging.error(f"gcov stderr: {p.stderr}")
+                logging.warning(f"gcov stderr: {p.stderr}")
 
             # Filter errors and demangle C++ names before writing
             filtered_output = self.filter_errors(p.stdout)
