@@ -1,0 +1,913 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.8" xml:lang="en-US">
+  <compounddef id="vorbisenc_8h" kind="file" language="C++">
+    <compoundname>vorbisenc.h</compoundname>
+    <includes refid="codec_8h" local="yes">codec.h</includes>
+    <incdepgraph>
+      <node id="2">
+        <label>codec.h</label>
+        <link refid="codec_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>vorbisenc.h</label>
+        <link refid="vorbisenc_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ogg/ogg.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structovectl__ratemanage__arg" prot="public">ovectl_ratemanage_arg</innerclass>
+    <innerclass refid="structovectl__ratemanage2__arg" prot="public">ovectl_ratemanage2_arg</innerclass>
+    <sectiondef kind="user-defined">
+      <header>vorbis_encode_ctl() codes</header>
+      <description><para><anchor id="vorbisenc_8h_1encctlcodes"/> These values are passed as the <computeroutput>number</computeroutput> parameter of <ref refid="vorbisenc_8h_1a5f398a378e20b8ce5e3341a582e773bd" kindref="member">vorbis_encode_ctl()</ref>. The type of the referent of that function&apos;s <computeroutput>arg</computeroutput> pointer depends on these codes. </para>
+</description>
+      <memberdef kind="define" id="vorbisenc_8h_1af95048070bedb467f80ce85e20057126" prot="public" static="no">
+        <name>OV_ECTL_RATEMANAGE2_GET</name>
+        <initializer>0x14</initializer>
+        <briefdescription>
+<para>Query the current encoder bitrate management setting. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Argument: <computeroutput>struct <ref refid="structovectl__ratemanage2__arg" kindref="compound">ovectl_ratemanage2_arg</ref> *</computeroutput></para>
+<para>Used to query the current encoder bitrate management setting. Also used to initialize fields of an <ref refid="structovectl__ratemanage2__arg" kindref="compound">ovectl_ratemanage2_arg</ref> structure for use with <ref refid="vorbisenc_8h_1a5075e0acb85fd45398a290594f83d6ba" kindref="member">OV_ECTL_RATEMANAGE2_SET</ref>. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" line="312" column="9" bodyfile="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" bodystart="312" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="vorbisenc_8h_1a5075e0acb85fd45398a290594f83d6ba" prot="public" static="no">
+        <name>OV_ECTL_RATEMANAGE2_SET</name>
+        <initializer>0x15</initializer>
+        <briefdescription>
+<para>Set the current encoder bitrate management settings. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Argument: <computeroutput>struct <ref refid="structovectl__ratemanage2__arg" kindref="compound">ovectl_ratemanage2_arg</ref> *</computeroutput></para>
+<para>Used to set the current encoder bitrate management settings to the values listed in the <ref refid="structovectl__ratemanage2__arg" kindref="compound">ovectl_ratemanage2_arg</ref>. Passing a NULL pointer will disable bitrate management. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" line="323" column="9" bodyfile="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" bodystart="323" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="vorbisenc_8h_1af8614b9ee808ddb88d50d21ea1cdf721" prot="public" static="no">
+        <name>OV_ECTL_LOWPASS_GET</name>
+        <initializer>0x20</initializer>
+        <briefdescription>
+<para>Returns the current encoder hard-lowpass setting (kHz) in the double pointed to by arg. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Argument: <computeroutput>double *</computeroutput> </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" line="331" column="9" bodyfile="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" bodystart="331" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="vorbisenc_8h_1a1862ca0d88ed0366990da2a4015547c8" prot="public" static="no">
+        <name>OV_ECTL_LOWPASS_SET</name>
+        <initializer>0x21</initializer>
+        <briefdescription>
+<para>Sets the encoder hard-lowpass to the value (kHz) pointed to by arg. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Valid lowpass settings range from 2 to 99.</para>
+<para>Argument: <computeroutput>double *</computeroutput> </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" line="339" column="9" bodyfile="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" bodystart="339" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="vorbisenc_8h_1a35ba680b627646bff135673d849e40e8" prot="public" static="no">
+        <name>OV_ECTL_IBLOCK_GET</name>
+        <initializer>0x30</initializer>
+        <briefdescription>
+<para>Returns the current encoder impulse block setting in the double pointed to by arg. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Argument: <computeroutput>double *</computeroutput> </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" line="347" column="9" bodyfile="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" bodystart="347" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="vorbisenc_8h_1a080b74cc4d75070376d7d1008bef4cd5" prot="public" static="no">
+        <name>OV_ECTL_IBLOCK_SET</name>
+        <initializer>0x31</initializer>
+        <briefdescription>
+<para>Sets the impulse block bias to the the value pointed to by arg. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Argument: <computeroutput>double *</computeroutput></para>
+<para>Valid range is -15.0 to 0.0 [default]. A negative impulse block bias will direct to encoder to use more bits when incoding short blocks that contain strong impulses, thus improving the accuracy of impulse encoding. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" line="358" column="9" bodyfile="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" bodystart="358" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="vorbisenc_8h_1afca9bdb09b83ca6b57018e380583134a" prot="public" static="no">
+        <name>OV_ECTL_COUPLING_GET</name>
+        <initializer>0x40</initializer>
+        <briefdescription>
+<para>Returns the current encoder coupling setting in the int pointed to by arg. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Argument: <computeroutput>int *</computeroutput> </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" line="366" column="9" bodyfile="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" bodystart="366" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="vorbisenc_8h_1aa263e0ee8a7343ecb744f4a4b9c96ffd" prot="public" static="no">
+        <name>OV_ECTL_COUPLING_SET</name>
+        <initializer>0x41</initializer>
+        <briefdescription>
+<para>Enables/disables channel coupling in multichannel encoding according to arg. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Argument: <computeroutput>int *</computeroutput></para>
+<para>Zero disables channel coupling for multichannel inputs, nonzer enables channel coupling. Setting has no effect on monophonic encoding or multichannel counts that do not offer coupling. At present, coupling is available for stereo and 5.1 encoding. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" line="378" column="9" bodyfile="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" bodystart="378" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="vorbisenc_8h_1a614481c0d84bdfbb80eed9208b68f779" prot="public" static="no">
+        <name>OV_ECTL_RATEMANAGE_GET</name>
+        <initializer>0x10</initializer>
+        <briefdescription>
+<para>Old interface to querying bitrate management settings. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Deprecated after move to bit-reservoir style management in 1.1 rendered this interface partially obsolete.</para>
+<para><xrefsect id="deprecated_1_deprecated000002"><xreftitle>Deprecated</xreftitle><xrefdescription><para>Please use <ref refid="vorbisenc_8h_1af95048070bedb467f80ce85e20057126" kindref="member">OV_ECTL_RATEMANAGE2_GET</ref> instead.</para>
+</xrefdescription></xrefsect></para>
+<para>Argument: <computeroutput>struct <ref refid="structovectl__ratemanage__arg" kindref="compound">ovectl_ratemanage_arg</ref> *</computeroutput> </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" line="392" column="9" bodyfile="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" bodystart="392" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="vorbisenc_8h_1a1daa1fd8ce1064cce01dde3ad447d389" prot="public" static="no">
+        <name>OV_ECTL_RATEMANAGE_SET</name>
+        <initializer>0x11</initializer>
+        <briefdescription>
+<para>Old interface to modifying bitrate management settings. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>deprecated after move to bit-reservoir style management in 1.1 rendered this interface partially obsolete.</para>
+<para><xrefsect id="deprecated_1_deprecated000003"><xreftitle>Deprecated</xreftitle><xrefdescription><para>Please use <ref refid="vorbisenc_8h_1a5075e0acb85fd45398a290594f83d6ba" kindref="member">OV_ECTL_RATEMANAGE2_SET</ref> instead.</para>
+</xrefdescription></xrefsect></para>
+<para>Argument: <computeroutput>struct <ref refid="structovectl__ratemanage__arg" kindref="compound">ovectl_ratemanage_arg</ref> *</computeroutput> </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" line="403" column="9" bodyfile="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" bodystart="403" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="vorbisenc_8h_1a34c3170d227b6368041e59c1dc7ed6e4" prot="public" static="no">
+        <name>OV_ECTL_RATEMANAGE_AVG</name>
+        <initializer>0x12</initializer>
+        <briefdescription>
+<para>Old interface to setting average-bitrate encoding mode. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Deprecated after move to bit-reservoir style management in 1.1 rendered this interface partially obsolete.</para>
+<para><xrefsect id="deprecated_1_deprecated000004"><xreftitle>Deprecated</xreftitle><xrefdescription><para>Please use <ref refid="vorbisenc_8h_1a5075e0acb85fd45398a290594f83d6ba" kindref="member">OV_ECTL_RATEMANAGE2_SET</ref> instead.</para>
+</xrefdescription></xrefsect></para>
+<para>Argument: <computeroutput>struct <ref refid="structovectl__ratemanage__arg" kindref="compound">ovectl_ratemanage_arg</ref> *</computeroutput> </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" line="414" column="9" bodyfile="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" bodystart="414" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="vorbisenc_8h_1af8869980a805f431af57a50dffbf5d33" prot="public" static="no">
+        <name>OV_ECTL_RATEMANAGE_HARD</name>
+        <initializer>0x13</initializer>
+        <briefdescription>
+<para>Old interface to setting bounded-bitrate encoding modes. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>deprecated after move to bit-reservoir style management in 1.1 rendered this interface partially obsolete.</para>
+<para><xrefsect id="deprecated_1_deprecated000005"><xreftitle>Deprecated</xreftitle><xrefdescription><para>Please use <ref refid="vorbisenc_8h_1a5075e0acb85fd45398a290594f83d6ba" kindref="member">OV_ECTL_RATEMANAGE2_SET</ref> instead.</para>
+</xrefdescription></xrefsect></para>
+<para>Argument: <computeroutput>struct <ref refid="structovectl__ratemanage__arg" kindref="compound">ovectl_ratemanage_arg</ref> *</computeroutput> </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" line="425" column="9" bodyfile="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" bodystart="425" bodyend="-1"/>
+      </memberdef>
+    </sectiondef>
+    <sectiondef kind="func">
+      <memberdef kind="function" id="vorbisenc_8h_1a6571d9c349c540491256f1083e1ede71" prot="public" static="no" extern="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int vorbis_encode_init</definition>
+        <argsstring>(vorbis_info *vi, long channels, long rate, long max_bitrate, long nominal_bitrate, long min_bitrate)</argsstring>
+        <name>vorbis_encode_init</name>
+        <param>
+          <type><ref refid="structvorbis__info" kindref="compound">vorbis_info</ref> *</type>
+          <declname>vi</declname>
+        </param>
+        <param>
+          <type>long</type>
+          <declname>channels</declname>
+        </param>
+        <param>
+          <type>long</type>
+          <declname>rate</declname>
+        </param>
+        <param>
+          <type>long</type>
+          <declname>max_bitrate</declname>
+        </param>
+        <param>
+          <type>long</type>
+          <declname>nominal_bitrate</declname>
+        </param>
+        <param>
+          <type>long</type>
+          <declname>min_bitrate</declname>
+        </param>
+        <briefdescription>
+<para>This is the primary function within libvorbisenc for setting up managed bitrate modes. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Before this function is called, the <ref refid="structvorbis__info" kindref="compound">vorbis_info</ref> struct should be initialized by using <ref refid="codec_8h_1af0ed4e74fe68802c7d337a2645e759d6" kindref="member">vorbis_info_init()</ref> from the libvorbis API. After encoding, <ref refid="codec_8h_1abaf171c1341b23e1c2eed7dab00d9f4a" kindref="member">vorbis_info_clear()</ref> should be called.</para>
+<para>The max_bitrate, nominal_bitrate, and min_bitrate settings are used to set constraints for the encoded file. This function uses these settings to select the appropriate encoding mode and set it up.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>vi</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to an initialized <ref refid="structvorbis__info" kindref="compound">vorbis_info</ref> struct. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>channels</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number of channels to be encoded. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>rate</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The sampling rate of the source audio. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>max_bitrate</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Desired maximum bitrate (limit). -1 indicates unset. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>nominal_bitrate</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Desired average, or central, bitrate. -1 indicates unset. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>min_bitrate</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Desired minimum bitrate. -1 indicates unset.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Zero for success, and negative values for failure.</para>
+</simplesect>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>0</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>OV_EFAULT</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Internal logic fault; indicates a bug or heap/stack corruption. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>OV_EINVAL</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid setup request, eg, out of range argument. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>OV_EIMPL</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Unimplemented mode; unable to comply with bitrate request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" line="59" column="12" declfile="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" declline="59" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="function" id="vorbisenc_8h_1ac73714f24500e18024e83104e9e09485" prot="public" static="no" extern="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int vorbis_encode_setup_managed</definition>
+        <argsstring>(vorbis_info *vi, long channels, long rate, long max_bitrate, long nominal_bitrate, long min_bitrate)</argsstring>
+        <name>vorbis_encode_setup_managed</name>
+        <param>
+          <type><ref refid="structvorbis__info" kindref="compound">vorbis_info</ref> *</type>
+          <declname>vi</declname>
+        </param>
+        <param>
+          <type>long</type>
+          <declname>channels</declname>
+        </param>
+        <param>
+          <type>long</type>
+          <declname>rate</declname>
+        </param>
+        <param>
+          <type>long</type>
+          <declname>max_bitrate</declname>
+        </param>
+        <param>
+          <type>long</type>
+          <declname>nominal_bitrate</declname>
+        </param>
+        <param>
+          <type>long</type>
+          <declname>min_bitrate</declname>
+        </param>
+        <briefdescription>
+<para>This function performs step-one of a three-step bitrate-managed encode setup. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>It functions similarly to the one-step setup performed by <ref refid="vorbisenc_8h_1a6571d9c349c540491256f1083e1ede71" kindref="member">vorbis_encode_init</ref> but allows an application to make further encode setup tweaks using <ref refid="vorbisenc_8h_1a5f398a378e20b8ce5e3341a582e773bd" kindref="member">vorbis_encode_ctl</ref> before finally calling <ref refid="vorbisenc_8h_1ac3953ff69d05864e78d1858a544ed619" kindref="member">vorbis_encode_setup_init</ref> to complete the setup process.</para>
+<para>Before this function is called, the <ref refid="structvorbis__info" kindref="compound">vorbis_info</ref> struct should be initialized by using <ref refid="codec_8h_1af0ed4e74fe68802c7d337a2645e759d6" kindref="member">vorbis_info_init()</ref> from the libvorbis API. After encoding, <ref refid="codec_8h_1abaf171c1341b23e1c2eed7dab00d9f4a" kindref="member">vorbis_info_clear()</ref> should be called.</para>
+<para>The max_bitrate, nominal_bitrate, and min_bitrate settings are used to set constraints for the encoded file. This function uses these settings to select the appropriate encoding mode and set it up.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>vi</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to an initialized <ref refid="structvorbis__info" kindref="compound">vorbis_info</ref> struct. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>channels</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number of channels to be encoded. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>rate</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The sampling rate of the source audio. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>max_bitrate</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Desired maximum bitrate (limit). -1 indicates unset. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>nominal_bitrate</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Desired average, or central, bitrate. -1 indicates unset. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>min_bitrate</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Desired minimum bitrate. -1 indicates unset.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Zero for success, and negative for failure.</para>
+</simplesect>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>0</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>OV_EFAULT</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Internal logic fault; indicates a bug or heap/stack corruption. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>OV_EINVAL</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid setup request, eg, out of range argument. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>OV_EIMPL</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Unimplemented mode; unable to comply with bitrate request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" line="96" column="12" declfile="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" declline="96" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="function" id="vorbisenc_8h_1a0f7677f216936a6cd7fa28ddbccada74" prot="public" static="no" extern="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int vorbis_encode_setup_vbr</definition>
+        <argsstring>(vorbis_info *vi, long channels, long rate, float quality)</argsstring>
+        <name>vorbis_encode_setup_vbr</name>
+        <param>
+          <type><ref refid="structvorbis__info" kindref="compound">vorbis_info</ref> *</type>
+          <declname>vi</declname>
+        </param>
+        <param>
+          <type>long</type>
+          <declname>channels</declname>
+        </param>
+        <param>
+          <type>long</type>
+          <declname>rate</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>quality</declname>
+        </param>
+        <briefdescription>
+<para>This function performs step-one of a three-step variable bitrate (quality-based) encode setup. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>It functions similarly to the one-step setup performed by <ref refid="vorbisenc_8h_1ab4e3d96c3008a29c615271d1f551c2a0" kindref="member">vorbis_encode_init_vbr()</ref> but allows an application to make further encode setup tweaks using <ref refid="vorbisenc_8h_1a5f398a378e20b8ce5e3341a582e773bd" kindref="member">vorbis_encode_ctl()</ref> before finally calling <ref refid="vorbisenc_8h_1ac3953ff69d05864e78d1858a544ed619" kindref="member">vorbis_encode_setup_init</ref> to complete the setup process.</para>
+<para>Before this function is called, the <ref refid="structvorbis__info" kindref="compound">vorbis_info</ref> struct should be initialized by using <ref refid="codec_8h_1af0ed4e74fe68802c7d337a2645e759d6" kindref="member">vorbis_info_init()</ref> from the libvorbis API. After encoding, <ref refid="codec_8h_1abaf171c1341b23e1c2eed7dab00d9f4a" kindref="member">vorbis_info_clear()</ref> should be called.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>vi</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to an initialized <ref refid="structvorbis__info" kindref="compound">vorbis_info</ref> struct. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>channels</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number of channels to be encoded. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>rate</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The sampling rate of the source audio. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>quality</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Desired quality level, currently from -0.1 to 1.0 (lo to hi).</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Zero for success, and negative values for failure.</para>
+</simplesect>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>0</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>OV_EFAULT</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Internal logic fault; indicates a bug or heap/stack corruption. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>OV_EINVAL</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid setup request, eg, out of range argument. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>OV_EIMPL</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Unimplemented mode; unable to comply with quality level request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" line="128" column="12" declfile="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" declline="128" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="function" id="vorbisenc_8h_1ab4e3d96c3008a29c615271d1f551c2a0" prot="public" static="no" extern="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int vorbis_encode_init_vbr</definition>
+        <argsstring>(vorbis_info *vi, long channels, long rate, float base_quality)</argsstring>
+        <name>vorbis_encode_init_vbr</name>
+        <param>
+          <type><ref refid="structvorbis__info" kindref="compound">vorbis_info</ref> *</type>
+          <declname>vi</declname>
+        </param>
+        <param>
+          <type>long</type>
+          <declname>channels</declname>
+        </param>
+        <param>
+          <type>long</type>
+          <declname>rate</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>base_quality</declname>
+        </param>
+        <briefdescription>
+<para>This is the primary function within libvorbisenc for setting up variable bitrate (&quot;quality&quot; based) modes. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Before this function is called, the <ref refid="structvorbis__info" kindref="compound">vorbis_info</ref> struct should be initialized by using <ref refid="codec_8h_1af0ed4e74fe68802c7d337a2645e759d6" kindref="member">vorbis_info_init()</ref> from the libvorbis API. After encoding, <ref refid="codec_8h_1abaf171c1341b23e1c2eed7dab00d9f4a" kindref="member">vorbis_info_clear()</ref> should be called.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>vi</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to an initialized <ref refid="structvorbis__info" kindref="compound">vorbis_info</ref> struct. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>channels</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number of channels to be encoded. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>rate</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The sampling rate of the source audio. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>base_quality</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Desired quality level, currently from -0.1 to 1.0 (lo to hi).</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Zero for success, or a negative number for failure.</para>
+</simplesect>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>0</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>OV_EFAULT</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Internal logic fault; indicates a bug or heap/stack corruption. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>OV_EINVAL</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid setup request, eg, out of range argument. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>OV_EIMPL</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Unimplemented mode; unable to comply with quality level request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" line="157" column="12" declfile="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" declline="157" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="function" id="vorbisenc_8h_1ac3953ff69d05864e78d1858a544ed619" prot="public" static="no" extern="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int vorbis_encode_setup_init</definition>
+        <argsstring>(vorbis_info *vi)</argsstring>
+        <name>vorbis_encode_setup_init</name>
+        <param>
+          <type><ref refid="structvorbis__info" kindref="compound">vorbis_info</ref> *</type>
+          <declname>vi</declname>
+        </param>
+        <briefdescription>
+<para>This function performs the last stage of three-step encoding setup, as described in the API overview under managed bitrate modes. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Before this function is called, the <ref refid="structvorbis__info" kindref="compound">vorbis_info</ref> struct should be initialized by using <ref refid="codec_8h_1af0ed4e74fe68802c7d337a2645e759d6" kindref="member">vorbis_info_init()</ref> from the libvorbis API, one of <ref refid="vorbisenc_8h_1ac73714f24500e18024e83104e9e09485" kindref="member">vorbis_encode_setup_managed()</ref> or <ref refid="vorbisenc_8h_1a0f7677f216936a6cd7fa28ddbccada74" kindref="member">vorbis_encode_setup_vbr()</ref> called to initialize the high-level encoding setup, and <ref refid="vorbisenc_8h_1a5f398a378e20b8ce5e3341a582e773bd" kindref="member">vorbis_encode_ctl()</ref> called if necessary to make encoding setup changes. <ref refid="vorbisenc_8h_1ac3953ff69d05864e78d1858a544ed619" kindref="member">vorbis_encode_setup_init()</ref> finalizes the highlevel encoding structure into a complete encoding setup after which the application may make no further setup changes.</para>
+<para>After encoding, <ref refid="codec_8h_1abaf171c1341b23e1c2eed7dab00d9f4a" kindref="member">vorbis_info_clear()</ref> should be called.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>vi</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to an initialized <ref refid="structvorbis__info" kindref="compound">vorbis_info</ref> struct.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Zero for success, and negative values for failure.</para>
+</simplesect>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>0</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>OV_EFAULT</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Internal logic fault; indicates a bug or heap/stack corruption.</para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>OV_EINVAL</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Attempt to use <ref refid="vorbisenc_8h_1ac3953ff69d05864e78d1858a544ed619" kindref="member">vorbis_encode_setup_init()</ref> without first calling one of <ref refid="vorbisenc_8h_1ac73714f24500e18024e83104e9e09485" kindref="member">vorbis_encode_setup_managed()</ref> or <ref refid="vorbisenc_8h_1a0f7677f216936a6cd7fa28ddbccada74" kindref="member">vorbis_encode_setup_vbr()</ref> to initialize the high-level encoding setup </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" line="191" column="12" declfile="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" declline="191" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="function" id="vorbisenc_8h_1a5f398a378e20b8ce5e3341a582e773bd" prot="public" static="no" extern="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int vorbis_encode_ctl</definition>
+        <argsstring>(vorbis_info *vi, int number, void *arg)</argsstring>
+        <name>vorbis_encode_ctl</name>
+        <param>
+          <type><ref refid="structvorbis__info" kindref="compound">vorbis_info</ref> *</type>
+          <declname>vi</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>number</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>arg</declname>
+        </param>
+        <briefdescription>
+<para>This function implements a generic interface to miscellaneous encoder settings similar to the classic UNIX &apos;ioctl()&apos; system call. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Applications may use <ref refid="vorbisenc_8h_1a5f398a378e20b8ce5e3341a582e773bd" kindref="member">vorbis_encode_ctl()</ref> to query or set bitrate management or quality mode details by using one of several <emphasis>request</emphasis> arguments detailed below. <ref refid="vorbisenc_8h_1a5f398a378e20b8ce5e3341a582e773bd" kindref="member">vorbis_encode_ctl()</ref> must be called after one of <ref refid="vorbisenc_8h_1ac73714f24500e18024e83104e9e09485" kindref="member">vorbis_encode_setup_managed()</ref> or <ref refid="vorbisenc_8h_1a0f7677f216936a6cd7fa28ddbccada74" kindref="member">vorbis_encode_setup_vbr()</ref>. When used to modify settings, <ref refid="vorbisenc_8h_1a5f398a378e20b8ce5e3341a582e773bd" kindref="member">vorbis_encode_ctl()</ref> must be called before <ref refid="vorbisenc_8h_1ac3953ff69d05864e78d1858a544ed619" kindref="member">vorbis_encode_setup_init()</ref>.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>vi</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to an initialized <ref refid="structvorbis__info" kindref="compound">vorbis_info</ref> struct.</para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>number</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Specifies the desired action; See <ref refid="vorbisenc_8h_1encctlcodes" kindref="member">the list</ref>of available requests".</para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>arg</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>void * pointing to a data structure matching the request argument.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>0</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. Any further return information (such as the result of a query) is placed into the storage pointed to by *arg.</para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>OV_EINVAL</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid argument, or an attempt to modify a setting after calling <ref refid="vorbisenc_8h_1ac3953ff69d05864e78d1858a544ed619" kindref="member">vorbis_encode_setup_init()</ref>.</para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>OV_EIMPL</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Unimplemented or unknown request </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" line="219" column="12" declfile="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h" declline="219" declcolumn="12"/>
+      </memberdef>
+    </sectiondef>
+    <briefdescription>
+<para>Libvorbisenc is a convenient API for setting up an encoding environment using libvorbis. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>Libvorbisenc encapsulates the actions needed to set up the encoder properly. </para>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">/********************************************************************</highlight></codeline>
+<codeline lineno="2"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>*</highlight></codeline>
+<codeline lineno="3"><highlight class="comment"><sp/>*<sp/>THIS<sp/>FILE<sp/>IS<sp/>PART<sp/>OF<sp/>THE<sp/>OggVorbis<sp/>SOFTWARE<sp/>CODEC<sp/>SOURCE<sp/>CODE.<sp/><sp/><sp/>*</highlight></codeline>
+<codeline lineno="4"><highlight class="comment"><sp/>*<sp/>USE,<sp/>DISTRIBUTION<sp/>AND<sp/>REPRODUCTION<sp/>OF<sp/>THIS<sp/>LIBRARY<sp/>SOURCE<sp/>IS<sp/><sp/><sp/><sp/><sp/>*</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/>*<sp/>GOVERNED<sp/>BY<sp/>A<sp/>BSD-STYLE<sp/>SOURCE<sp/>LICENSE<sp/>INCLUDED<sp/>WITH<sp/>THIS<sp/>SOURCE<sp/>*</highlight></codeline>
+<codeline lineno="6"><highlight class="comment"><sp/>*<sp/>IN<sp/>&apos;COPYING&apos;.<sp/>PLEASE<sp/>READ<sp/>THESE<sp/>TERMS<sp/>BEFORE<sp/>DISTRIBUTING.<sp/><sp/><sp/><sp/><sp/><sp/><sp/>*</highlight></codeline>
+<codeline lineno="7"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>*</highlight></codeline>
+<codeline lineno="8"><highlight class="comment"><sp/>*<sp/>THE<sp/>OggVorbis<sp/>SOURCE<sp/>CODE<sp/>IS<sp/>(C)<sp/>COPYRIGHT<sp/>1994-2001<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>*</highlight></codeline>
+<codeline lineno="9"><highlight class="comment"><sp/>*<sp/>by<sp/>the<sp/>Xiph.Org<sp/>Foundation<sp/>https://xiph.org/<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>*</highlight></codeline>
+<codeline lineno="10"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>*</highlight></codeline>
+<codeline lineno="11"><highlight class="comment"><sp/>********************************************************************</highlight></codeline>
+<codeline lineno="12"><highlight class="comment"></highlight></codeline>
+<codeline lineno="13"><highlight class="comment"><sp/>function:<sp/>vorbis<sp/>encode-engine<sp/>setup</highlight></codeline>
+<codeline lineno="14"><highlight class="comment"></highlight></codeline>
+<codeline lineno="15"><highlight class="comment"><sp/>********************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>_OV_ENC_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>_OV_ENC_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>__cplusplus</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="stringliteral">&quot;C&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/></highlight><highlight class="comment">/*<sp/>__cplusplus<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="codec_8h" kindref="compound">codec.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59" refid="vorbisenc_8h_1a6571d9c349c540491256f1083e1ede71" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="vorbisenc_8h_1a6571d9c349c540491256f1083e1ede71" kindref="member">vorbis_encode_init</ref>(<ref refid="structvorbis__info" kindref="compound">vorbis_info</ref><sp/>*vi,</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/>channels,</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/>rate,</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/>max_bitrate,</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/>nominal_bitrate,</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/>min_bitrate);</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight></codeline>
+<codeline lineno="96" refid="vorbisenc_8h_1ac73714f24500e18024e83104e9e09485" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="vorbisenc_8h_1ac73714f24500e18024e83104e9e09485" kindref="member">vorbis_encode_setup_managed</ref>(<ref refid="structvorbis__info" kindref="compound">vorbis_info</ref><sp/>*vi,</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/>channels,</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/>rate,</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/>max_bitrate,</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/>nominal_bitrate,</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/>min_bitrate);</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight></codeline>
+<codeline lineno="128" refid="vorbisenc_8h_1a0f7677f216936a6cd7fa28ddbccada74" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="vorbisenc_8h_1a0f7677f216936a6cd7fa28ddbccada74" kindref="member">vorbis_encode_setup_vbr</ref>(<ref refid="structvorbis__info" kindref="compound">vorbis_info</ref><sp/>*vi,</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/>channels,</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/>rate,</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>quality</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>);</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"></highlight></codeline>
+<codeline lineno="157" refid="vorbisenc_8h_1ab4e3d96c3008a29c615271d1f551c2a0" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="vorbisenc_8h_1ab4e3d96c3008a29c615271d1f551c2a0" kindref="member">vorbis_encode_init_vbr</ref>(<ref refid="structvorbis__info" kindref="compound">vorbis_info</ref><sp/>*vi,</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/>channels,</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/>rate,</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>base_quality</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>);</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"></highlight></codeline>
+<codeline lineno="191" refid="vorbisenc_8h_1ac3953ff69d05864e78d1858a544ed619" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="vorbisenc_8h_1ac3953ff69d05864e78d1858a544ed619" kindref="member">vorbis_encode_setup_init</ref>(<ref refid="structvorbis__info" kindref="compound">vorbis_info</ref><sp/>*vi);</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"></highlight></codeline>
+<codeline lineno="219" refid="vorbisenc_8h_1a5f398a378e20b8ce5e3341a582e773bd" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="vorbisenc_8h_1a5f398a378e20b8ce5e3341a582e773bd" kindref="member">vorbis_encode_ctl</ref>(<ref refid="structvorbis__info" kindref="compound">vorbis_info</ref><sp/>*vi,</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>number,</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*arg);</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"></highlight></codeline>
+<codeline lineno="232" refid="structovectl__ratemanage__arg" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structovectl__ratemanage__arg" kindref="compound">ovectl_ratemanage_arg</ref><sp/>{</highlight></codeline>
+<codeline lineno="233" refid="structovectl__ratemanage__arg_1ad792d1b89a5d07f0f0e90509df4bc606" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structovectl__ratemanage__arg_1ad792d1b89a5d07f0f0e90509df4bc606" kindref="member">management_active</ref>;<sp/></highlight></codeline>
+<codeline lineno="236" refid="structovectl__ratemanage__arg_1a449d3ea8d0645742af859dd17b41fbfb" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/><sp/><sp/><ref refid="structovectl__ratemanage__arg_1a449d3ea8d0645742af859dd17b41fbfb" kindref="member">bitrate_hard_min</ref>;</highlight></codeline>
+<codeline lineno="239" refid="structovectl__ratemanage__arg_1a3620024b5a9e4b4df6d20deb6c125c92" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/><sp/><sp/><ref refid="structovectl__ratemanage__arg_1a3620024b5a9e4b4df6d20deb6c125c92" kindref="member">bitrate_hard_max</ref>;</highlight></codeline>
+<codeline lineno="242" refid="structovectl__ratemanage__arg_1a68caf36fc02a52199705fa331d118446" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">double</highlight><highlight class="normal"><sp/><ref refid="structovectl__ratemanage__arg_1a68caf36fc02a52199705fa331d118446" kindref="member">bitrate_hard_window</ref>;</highlight></codeline>
+<codeline lineno="245" refid="structovectl__ratemanage__arg_1ac241670a3a608f114acaf8f26fe4e913" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/><sp/><sp/><ref refid="structovectl__ratemanage__arg_1ac241670a3a608f114acaf8f26fe4e913" kindref="member">bitrate_av_lo</ref>;</highlight></codeline>
+<codeline lineno="248" refid="structovectl__ratemanage__arg_1ac1e81b5a2e705022ca895f494718ded7" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/><sp/><sp/><ref refid="structovectl__ratemanage__arg_1ac1e81b5a2e705022ca895f494718ded7" kindref="member">bitrate_av_hi</ref>;</highlight></codeline>
+<codeline lineno="251" refid="structovectl__ratemanage__arg_1a1232e7296ae5e52f52039bed2560c505" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">double</highlight><highlight class="normal"><sp/><ref refid="structovectl__ratemanage__arg_1a1232e7296ae5e52f52039bed2560c505" kindref="member">bitrate_av_window</ref>;</highlight></codeline>
+<codeline lineno="257" refid="structovectl__ratemanage__arg_1aad317d50fb4d072e2c55f0a60d1a83b2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">double</highlight><highlight class="normal"><sp/><ref refid="structovectl__ratemanage__arg_1aad317d50fb4d072e2c55f0a60d1a83b2" kindref="member">bitrate_av_window_center</ref>;</highlight></codeline>
+<codeline lineno="258"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="259"><highlight class="normal"></highlight></codeline>
+<codeline lineno="269" refid="structovectl__ratemanage2__arg" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structovectl__ratemanage2__arg" kindref="compound">ovectl_ratemanage2_arg</ref><sp/>{</highlight></codeline>
+<codeline lineno="270" refid="structovectl__ratemanage2__arg_1aca1f656373a1597177dac924578e375b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structovectl__ratemanage2__arg_1aca1f656373a1597177dac924578e375b" kindref="member">management_active</ref>;<sp/></highlight></codeline>
+<codeline lineno="272" refid="structovectl__ratemanage2__arg_1aeb53a17fff14ec50d143602adfdeabeb" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/><sp/><sp/><ref refid="structovectl__ratemanage2__arg_1aeb53a17fff14ec50d143602adfdeabeb" kindref="member">bitrate_limit_min_kbps</ref>;</highlight></codeline>
+<codeline lineno="274" refid="structovectl__ratemanage2__arg_1a175691482003edd7d94592fa2bc993a9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/><sp/><sp/><ref refid="structovectl__ratemanage2__arg_1a175691482003edd7d94592fa2bc993a9" kindref="member">bitrate_limit_max_kbps</ref>;</highlight></codeline>
+<codeline lineno="275" refid="structovectl__ratemanage2__arg_1a75e496acac882e156137de9d1200ebd7" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/><sp/><sp/><ref refid="structovectl__ratemanage2__arg_1a75e496acac882e156137de9d1200ebd7" kindref="member">bitrate_limit_reservoir_bits</ref>;<sp/></highlight></codeline>
+<codeline lineno="281" refid="structovectl__ratemanage2__arg_1a5567fde1798b1e80e40a77565b4b44f4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">double</highlight><highlight class="normal"><sp/><ref refid="structovectl__ratemanage2__arg_1a5567fde1798b1e80e40a77565b4b44f4" kindref="member">bitrate_limit_reservoir_bias</ref>;</highlight></codeline>
+<codeline lineno="283" refid="structovectl__ratemanage2__arg_1a1f6bab60d87143d5060dd6c59aad6e71" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/><sp/><sp/><ref refid="structovectl__ratemanage2__arg_1a1f6bab60d87143d5060dd6c59aad6e71" kindref="member">bitrate_average_kbps</ref>;</highlight></codeline>
+<codeline lineno="288" refid="structovectl__ratemanage2__arg_1a1069e148a884d8706928cd2e39870720" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">double</highlight><highlight class="normal"><sp/><ref refid="structovectl__ratemanage2__arg_1a1069e148a884d8706928cd2e39870720" kindref="member">bitrate_average_damping</ref>;</highlight></codeline>
+<codeline lineno="289"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="290"><highlight class="normal"></highlight></codeline>
+<codeline lineno="291"><highlight class="normal"></highlight></codeline>
+<codeline lineno="302"><highlight class="normal"></highlight></codeline>
+<codeline lineno="312" refid="vorbisenc_8h_1af95048070bedb467f80ce85e20057126" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>OV_ECTL_RATEMANAGE2_GET<sp/><sp/><sp/><sp/><sp/><sp/>0x14</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="313"><highlight class="normal"></highlight></codeline>
+<codeline lineno="323" refid="vorbisenc_8h_1a5075e0acb85fd45398a290594f83d6ba" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>OV_ECTL_RATEMANAGE2_SET<sp/><sp/><sp/><sp/><sp/><sp/>0x15</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="324"><highlight class="normal"></highlight></codeline>
+<codeline lineno="331" refid="vorbisenc_8h_1af8614b9ee808ddb88d50d21ea1cdf721" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>OV_ECTL_LOWPASS_GET<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>0x20</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="332"><highlight class="normal"></highlight></codeline>
+<codeline lineno="339" refid="vorbisenc_8h_1a1862ca0d88ed0366990da2a4015547c8" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>OV_ECTL_LOWPASS_SET<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>0x21</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="340"><highlight class="normal"></highlight></codeline>
+<codeline lineno="347" refid="vorbisenc_8h_1a35ba680b627646bff135673d849e40e8" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>OV_ECTL_IBLOCK_GET<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>0x30</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="348"><highlight class="normal"></highlight></codeline>
+<codeline lineno="358" refid="vorbisenc_8h_1a080b74cc4d75070376d7d1008bef4cd5" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>OV_ECTL_IBLOCK_SET<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>0x31</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="359"><highlight class="normal"></highlight></codeline>
+<codeline lineno="366" refid="vorbisenc_8h_1afca9bdb09b83ca6b57018e380583134a" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>OV_ECTL_COUPLING_GET<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>0x40</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="367"><highlight class="normal"></highlight></codeline>
+<codeline lineno="378" refid="vorbisenc_8h_1aa263e0ee8a7343ecb744f4a4b9c96ffd" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>OV_ECTL_COUPLING_SET<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>0x41</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="379"><highlight class="normal"></highlight></codeline>
+<codeline lineno="380"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">/*<sp/>deprecated<sp/>rate<sp/>management<sp/>supported<sp/>only<sp/>for<sp/>compatibility<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="381"><highlight class="normal"></highlight></codeline>
+<codeline lineno="392" refid="vorbisenc_8h_1a614481c0d84bdfbb80eed9208b68f779" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>OV_ECTL_RATEMANAGE_GET<sp/><sp/><sp/><sp/><sp/><sp/><sp/>0x10</highlight></codeline>
+<codeline lineno="403" refid="vorbisenc_8h_1a1daa1fd8ce1064cce01dde3ad447d389" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>OV_ECTL_RATEMANAGE_SET<sp/><sp/><sp/><sp/><sp/><sp/><sp/>0x11</highlight></codeline>
+<codeline lineno="414" refid="vorbisenc_8h_1a34c3170d227b6368041e59c1dc7ed6e4" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>OV_ECTL_RATEMANAGE_AVG<sp/><sp/><sp/><sp/><sp/><sp/><sp/>0x12</highlight></codeline>
+<codeline lineno="425" refid="vorbisenc_8h_1af8869980a805f431af57a50dffbf5d33" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>OV_ECTL_RATEMANAGE_HARD<sp/><sp/><sp/><sp/><sp/><sp/>0x13</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="426"><highlight class="normal"></highlight></codeline>
+<codeline lineno="431"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>__cplusplus</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="432"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="433"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/></highlight><highlight class="comment">/*<sp/>__cplusplus<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="434"><highlight class="normal"></highlight></codeline>
+<codeline lineno="435"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="/home/ahmedzaki/benchmark_libs/vorbis/include/vorbis/vorbisenc.h"/>
+  </compounddef>
+</doxygen>

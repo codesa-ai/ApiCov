@@ -46,23 +46,8 @@ runs:
         fi
       shell: bash
 
-    - name: Debug inputs
-      run: |
-        echo "Debug: root_path = ${{ inputs.root_path }}"
-        echo "Debug: api_key = ${{ inputs.api_key != '' && '***' || 'not set' }}"
-        echo "Debug: install_path = ${{ inputs.install_path != '' && inputs.install_path || 'not set' }}"
-        echo "Debug: doxygen_path = ${{ inputs.doxygen_path != '' && inputs.doxygen_path || 'not set' }}"
-        echo "Debug: xml = ${{ inputs.xml != '' && inputs.xml || 'not set' }}"
-        echo "Debug: compile = ${{ inputs.compile != '' && inputs.compile || 'not set' }}"
-        echo "Debug: api_source = ${{ inputs.api_source != '' && inputs.api_source || 'not set' }}"
-        echo "Debug: headers_dir = ${{ inputs.headers_dir != '' && inputs.headers_dir || 'not set' }}"
-        echo "Debug: GITHUB_ACTION_PATH = $GITHUB_ACTION_PATH"
-      shell: bash
-
     - name: Run APICov
       run: |
-        echo "Debug: Constructing command..."
-        
         # Check if binary exists
         if [[ ! -f "${GITHUB_ACTION_PATH}/dist/apicov" ]]; then
           echo "Error: apicov binary not found"
@@ -96,7 +81,6 @@ runs:
           CMD="$CMD --headers-dir \"${{ inputs.headers_dir }}\""
         fi
         
-        echo "Debug: Full command: $CMD"
         chmod +x "${GITHUB_ACTION_PATH}/dist/apicov"
         eval "$CMD"
       shell: bash

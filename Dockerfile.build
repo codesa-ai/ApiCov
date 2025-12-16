@@ -1,0 +1,72 @@
+# Build container for Ubuntu 22.04 compatible binaries
+FROM ubuntu:22.04
+
+# Avoid interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install Python 3.10 and build dependencies
+RUN apt-get update && apt-get install -y \
+    python3.10 \
+    python3.10-venv \
+    python3.10-dev \
+    python3-pip \
+    binutils \
+    curl \
+    git \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Python 3.10 as default
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
+
+WORKDIR /app
+
+# Copy project files
+COPY pyproject.toml requirements.txt README.md ./
+COPY src/ ./src/
+
+# Create virtual environment and install dependencies
+RUN python3 -m venv .venv && \
+    . .venv/bin/activate && \
+    pip install --upgrade pip && \
+    pip install pyinstaller && \
+    pip install -e . && \
+    pip install beautifulsoup4 lxml
+
+# Build the binary
+RUN . .venv/bin/activate && \
+    pyinstaller --onefile \
+    --clean \
+    --strip \
+    --noconfirm \
+    --hidden-import=modules \
+    --hidden-import=requests \
+    --hidden-import=bs4 \
+    --hidden-import=bs4.builder._lxml \
+    --hidden-import=lxml \
+    --hidden-import=lxml.etree \
+    --hidden-import=lxml._elementpath \
+    --hidden-import=xml \
+    --hidden-import=xml.etree \
+    --hidden-import=xml.etree.ElementTree \
+    --hidden-import=xml.parsers \
+    --hidden-import=xml.parsers.expat \
+    --hidden-import=tree_sitter \
+    --hidden-import=tree_sitter_cpp \
+    --collect-submodules bs4 \
+    --collect-submodules lxml \
+    --collect-submodules xml \
+    --collect-submodules tree_sitter \
+    --collect-submodules tree_sitter_cpp \
+    --collect-data bs4 \
+    --collect-data lxml \
+    --collect-data tree_sitter_cpp \
+    --add-data "src/modules:modules" \
+    src/apicov.py
+
+# Make binary executable
+RUN chmod +x /app/dist/apicov
+
+# Default command to copy binary out (used with docker cp)
+CMD ["cp", "/app/dist/apicov", "/output/apicov"]
+

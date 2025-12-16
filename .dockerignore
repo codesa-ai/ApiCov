@@ -1,0 +1,38 @@
+# Ignore build artifacts
+build/
+dist/
+*.spec
+
+# Ignore virtual environments
+.venv/
+*venv*
+
+# Ignore Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+
+# Ignore test data (large files)
+src/tests/vorbis/
+src/tests/FFmpeg/
+src/tests/LibreOffice/
+src/tests/test_doc/
+
+# Ignore development files
+dev_files/
+artifact/
+.idea/
+.git/
+.github/
+
+# Ignore large/unnecessary files
+*.zip
+*.tar
+*.tgz
+*.log
+*.txt
+!requirements.txt
+
+
+
