@@ -1,36 +1,37 @@
 # ApiCov GitHub Action
 
 This is Github action that is responsible for parsing all the coverage files of a software library and uploading them.
-The action will identify all exports from shared libraries built as part of the build process in a CI/CD pipeline. 
+The action will identify all exports from the target library built as part of the build process in a CI/CD pipeline. 
 After your tests run, ApiCov will calculate line coverage for each API your library provides to users. 
-ApiCov uses `gcov` to calculate coverage. 
 
 
 ### Pre-requisites
-* Users of the action need to build their targets with coverage eg. `--coverage -O0` or `-fprofile-arcs -ftest-coverage -O0`.
-* The library needs to be built into shared library file(s). This is to be able to identify all APIs your library provides for clients. If your library is a header only library then you need to provide the list of APIs. 
-* As part of the CI/CD pipeline you need to install and run the tests on your library before running this action. So it would come towards the end of your CI/CD workflow. This would ensure that all your CI/CD tests have run successfully to ensure accurate reporting of your API coverage.
+* The library needs to be written in C/C++.
+* An Api Key obtained from adding the library to Code Sa portal.
+* A Github workflow that builds the target library with coverage instrumentation (eg. `--coverage -O0` or `-fprofile-arcs -ftest-coverage`) and runs your test suite. The workflow would also test installation of the library.
 
 ### Inputs
+
 The action requires two inputs
-* The directory where the repository is cloned on the runner. 
-* The api key associated with the library. 
-* (optional) The directory where you install the library on the runner during your workflow. 
 
-## Inputs
-
-| Input | Description | Required |
-|-------|-------------|----------|
-| `root_path` | The directory where the repo is cloned | Yes |
-| `api_key` | The API key associated with the library | Yes |
-| `install_path` | The directory where the build is installed | No |
-| `doxygen_path` | Path to the Doxygen HTML files (optional, for API documentation extraction) | No |
+- Required arguments
+    - **root_path**: The directory where the repo is cloned, typically this is stored in the environment variable `${{ github.workspace }}`
+    - **api_key**: This is the Code Sa Api key obtained after adding the library to Code Sa portal. The Api key can be referenced in the action by using the variable `${{ secrets.APICOV_KEY }}`
+      
+- Optional arguments
+    - **install_path**: This is the directory where you install the library after building it. This can be something like `${{ github.workspace }}/install`
+    - **doxygen_path**: The path to where doxygen documentation is generated. This can be in xml or html format depending on your configuration. For example `${{ github.workspace }}/docs`
+    - **xml**: If you do provide a doxygen path you can also specify if this documentation is generated in html or xml format. By default this value is false indicating that documentation is in html format.
+    - **compile**: Specify the type of compiler used (gcc/clang). This will allow us to understand the format of the coverage reports generated.
+    - **api_source**: Source for API extraction can be "shared-libs" (default) extracts from shared library exports or "headers" parses header files directly (useful for C++ vtables)'. The default value is shared-libs.
+    - **headers_dir**: Path to directory containing header files. If not provided, defaults to `install_path/include` or `install_path`
 
 ## Outputs
 
-The action generates two JSON files:
+The action generates and uploads the following files to Code Sa:
 - `apis.json`: List of all APIs found in the project
 - `api_coverage.json`: Coverage data for each API (now includes documentation if doxygen_path is provided)
+- `headers.json`: A list of the header files exported by the library for users to import. 
 
 These files are uploaded as artifacts and can be downloaded in subsequent steps.
 
@@ -40,13 +41,17 @@ To use this action in a private repository
 
 * Reference the action in your workflow using:
    ```yaml
-      - name: 'ApiCov'
-        uses: codesa-ai/ApiCov@v0.1.0
+      - name: Run ApiCov analysis
+        uses: codesa-ai/ApiCov@latest
         with:
           root_path: ${{ github.workspace }}
+          install_path: ${{ github.workspace }}/install
           api_key: ${{ secrets.APICOV_KEY }}
-          install_path: ${{ steps.install.outputs.prefix }}
-          doxygen_path: ${{ steps.doxygen.outputs.html_dir }} # Optional: for API documentation extraction
+          doxygen_path: ${{ github.workspace }}/docs/xml
+          compile: gcc
+          api_source: headers
+          xml: true
+          headers_dir: ${{ github.workspace }}/include
     ```
 You should make sure this action is invoked towards the end of your CI workflow to ensure all tests have run with coverage enabled. 
 
