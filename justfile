@@ -21,7 +21,7 @@ test-prep:
 
 # Run the tests (vorbis)
 test:
-  pytest tests/tests.py -v
+  PYTHONPATH=src pytest tests/tests.py -v
 
 # Build binary locally (may have GLIBC compatibility issues - prefer build-docker for releases)
 build:

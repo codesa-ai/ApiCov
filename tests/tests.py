@@ -3,7 +3,11 @@ import os
 import unittest.mock as mock
 import requests
 import json
+import tempfile
+import shutil
+import tarfile
 
+from pathlib import Path
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
@@ -12,6 +16,8 @@ from modules.Coverage import LibCoverage  # noqa: E402
 from modules.ExportFetcher import ExportFetcher  # noqa: E402
 from modules.Utils import find_shared_libraries  # noqa: E402
 from modules.Utils import find_header_files  # noqa: E402
+from modules.Utils import compress_lcov_file  # noqa: E402
+from apicov import generate_lcov_info  # noqa: E402
 from modules.logging_config import logging  # noqa: E402
 from apicov import upload_data  # noqa: E402
 from modules.DocGen import DocGen  # noqa: E402
@@ -178,8 +184,6 @@ def test_docgen_init_html_mode():
     """
     Test DocGen initialization in HTML mode (should convert HTML to XML and create apicov_xml directory).
     """
-    import tempfile
-    from pathlib import Path
 
     with tempfile.TemporaryDirectory() as tmpdir:
         html_file = Path(tmpdir) / "index.html"
@@ -279,6 +283,103 @@ def test_convert_html_directory_to_xml():
                         )
 
 
+def test_generate_lcov_info():
+    """
+    Test generate_lcov_info function that runs lcov to generate coverage info files.
+
+    This test checks that:
+    1. lcov command is available on the system
+    2. lcov can successfully process gcno/gcda files in the vorbis test directory
+    3. An .info file is generated with coverage data
+    """
+
+    logging.info("Testing generate_lcov_info with vorbis project")
+
+    # Check if lcov is available
+    if not shutil.which("lcov"):
+        logging.warning("lcov not installed, skipping test")
+        return
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        output_file = os.path.join(tmpdir, "coverage.info")
+        result = generate_lcov_info(PROJECT_DIR, output_file)
+
+        assert result is True, "generate_lcov_info should return True on success"
+        assert os.path.exists(output_file), "Coverage info file should be created"
+
+        # Check that the file has content
+        file_size = os.path.getsize(output_file)
+        logging.info(f"Generated lcov info file size: {file_size} bytes")
+        assert file_size > 0, "Coverage info file should not be empty"
+
+        # Check file contains expected lcov format markers
+        with open(output_file, "r") as f:
+            content = f.read()
+            assert "SF:" in content or "TN:" in content, (
+                "Coverage info file should contain lcov format markers"
+            )
+
+
+def test_compress_lcov_file():
+    """
+    Test compress_lcov_file function that compresses .info files into tar archives.
+
+    This test checks that:
+    1. A valid .info file is compressed into a tar.xz archive
+    2. The archive is created with the correct name
+    3. The archive contains the original file
+    4. Both .tar.xz and .tgz formats work correctly
+    5. Missing files are handled gracefully
+    """
+
+    logging.info("Testing compress_lcov_file function")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Create a fake .info file with lcov-like content
+        info_file = os.path.join(tmpdir, "test.info")
+        with open(info_file, "w") as f:
+            f.write("TN:\n")
+            f.write("SF:/path/to/source.c\n")
+            f.write("FN:10,test_function\n")
+            f.write("DA:10,1\n")
+            f.write("DA:11,1\n")
+            f.write("DA:12,0\n")
+            f.write("LF:3\n")
+            f.write("LH:2\n")
+            f.write("end_of_record\n")
+
+        # Test .tar.xz compression
+        output_dir = os.path.join(tmpdir, "output_xz")
+        os.makedirs(output_dir)
+        archive_path = compress_lcov_file(info_file, output_dir, "coverage.tar.xz")
+
+        assert archive_path is not None, "compress_lcov_file should return archive path"
+        assert os.path.exists(archive_path), "Archive file should exist"
+        assert archive_path.endswith(".tar.xz"), "Archive should have .tar.xz extension"
+
+        # Verify archive contents
+        with tarfile.open(archive_path, "r:xz") as tar:
+            names = tar.getnames()
+            assert "test.info" in names, "Archive should contain the info file"
+
+        # Test .tgz compression
+        output_dir_gz = os.path.join(tmpdir, "output_gz")
+        os.makedirs(output_dir_gz)
+        archive_path_gz = compress_lcov_file(info_file, output_dir_gz, "coverage.tgz")
+
+        assert archive_path_gz is not None, "compress_lcov_file should return archive path for tgz"
+        assert os.path.exists(archive_path_gz), "Gzip archive file should exist"
+
+        # Verify gzip archive contents
+        with tarfile.open(archive_path_gz, "r:gz") as tar:
+            names = tar.getnames()
+            assert "test.info" in names, "Gzip archive should contain the info file"
+
+        # Test with non-existent file
+        result = compress_lcov_file("/nonexistent/file.info", tmpdir)
+        assert result is None, "compress_lcov_file should return None for missing file"
+
+
 def test_find_header_files():
     """
     Test find_header_files function to verify it correctly finds C/C++ header files.
@@ -334,6 +435,153 @@ def test_find_header_files():
     )
 
 
+def test_apis_json_structure():
+    """
+    Test that apis.json has the correct dict-of-dicts structure.
+
+    The expected structure is:
+    {
+        "apis": {
+            "header_file.h": ["api1", "api2", ...],
+            ...
+        }
+    }
+
+    Where the outer dict has an "apis" key containing a dict mapping
+    header file names to lists of API function names.
+    """
+    logging.info("Testing apis.json structure")
+
+    # Use ExportFetcher to generate the apis structure
+    lib_exports = ExportFetcher()
+    for lib in os.listdir(SHARED_LIBS):
+        if lib.endswith(".so"):
+            lib_exports.get_exports_from_lib(os.path.join(SHARED_LIBS, lib))
+    lib_exports.filter_non_apis(INSTALL_DIR)
+
+    # Verify the structure is a dict of lists (header -> [apis])
+    assert isinstance(lib_exports.apis, dict), "apis should be a dict"
+    assert len(lib_exports.apis) > 0, "apis should not be empty"
+
+    for header_file, apis_list in lib_exports.apis.items():
+        assert isinstance(header_file, str), f"Header key should be a string, got {type(header_file)}"
+        assert isinstance(apis_list, list), f"APIs for {header_file} should be a list, got {type(apis_list)}"
+        assert len(apis_list) > 0, f"APIs list for {header_file} should not be empty"
+        for api in apis_list:
+            assert isinstance(api, str), f"API name should be a string, got {type(api)}"
+
+    # Create the JSON structure as apicov.py does
+    json_data = {"apis": lib_exports.apis}
+
+    # Verify it can be serialized and deserialized correctly
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        json.dump(json_data, f)
+        temp_path = f.name
+
+    try:
+        with open(temp_path, "r") as f:
+            loaded_data = json.load(f)
+
+        assert "apis" in loaded_data, "JSON should have 'apis' key"
+        assert isinstance(loaded_data["apis"], dict), "apis should be a dict"
+
+        for header_file, apis_list in loaded_data["apis"].items():
+            assert isinstance(apis_list, list), f"APIs for {header_file} should be a list after JSON round-trip"
+
+        logging.info(f"apis.json structure valid: {len(loaded_data['apis'])} header files")
+    finally:
+        os.unlink(temp_path)
+
+
+def test_api_coverage_json_structure():
+    """
+    Test that api_coverage.json has the correct dict-of-dicts structure.
+
+    The expected structure is:
+    {
+        "header_file.h": {
+            "api_name": {
+                "full_size": int,
+                "covered_lines": int,
+                "apidoc": str (optional)
+            },
+            ...
+        },
+        ...
+    }
+
+    Where the outer dict maps header file names to dicts of API coverage data.
+    """
+    logging.info("Testing api_coverage.json structure")
+
+    # Use ExportFetcher to get APIs
+    lib_exports = ExportFetcher()
+    for lib in os.listdir(SHARED_LIBS):
+        if lib.endswith(".so"):
+            lib_exports.get_exports_from_lib(os.path.join(SHARED_LIBS, lib))
+    lib_exports.filter_non_apis(INSTALL_DIR)
+
+    # Get coverage data
+    all_apis = []
+    for file, apis in lib_exports.apis.items():
+        for api in apis:
+            all_apis.append(api)
+
+    lib_coverage = LibCoverage(all_apis, PROJECT_DIR)
+    lib_coverage.run_gcov_on_gcno_files()
+    lib_coverage.populate_entry_api_cov()
+
+    # Build the api_coverage structure as apicov.py does
+    json_data = {}
+    for file, apis in lib_exports.apis.items():
+        json_data[file] = {}
+        for api in apis:
+            json_data[file][api] = {
+                "full_size": 0,
+                "covered_lines": 0
+            }
+            if api in lib_coverage.api_sizes:
+                json_data[file][api]["full_size"] = lib_coverage.api_sizes[api]
+                json_data[file][api]["covered_lines"] = lib_coverage.api_coverage[api]
+
+    # Verify structure
+    assert isinstance(json_data, dict), "api_coverage should be a dict"
+    assert len(json_data) > 0, "api_coverage should not be empty"
+
+    for header_file, apis_dict in json_data.items():
+        assert isinstance(header_file, str), f"Header key should be a string, got {type(header_file)}"
+        assert isinstance(apis_dict, dict), f"APIs for {header_file} should be a dict, got {type(apis_dict)}"
+
+        for api_name, coverage_data in apis_dict.items():
+            assert isinstance(api_name, str), f"API name should be a string, got {type(api_name)}"
+            assert isinstance(coverage_data, dict), f"Coverage data for {api_name} should be a dict"
+            assert "full_size" in coverage_data, f"Coverage data for {api_name} should have 'full_size'"
+            assert "covered_lines" in coverage_data, f"Coverage data for {api_name} should have 'covered_lines'"
+            assert isinstance(coverage_data["full_size"], (int, float)), f"full_size should be numeric"
+            assert isinstance(coverage_data["covered_lines"], (int, float)), f"covered_lines should be numeric"
+
+    # Verify JSON serialization round-trip
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        json.dump(json_data, f)
+        temp_path = f.name
+
+    try:
+        with open(temp_path, "r") as f:
+            loaded_data = json.load(f)
+
+        assert isinstance(loaded_data, dict), "Loaded data should be a dict"
+
+        for header_file, apis_dict in loaded_data.items():
+            assert isinstance(apis_dict, dict), f"APIs for {header_file} should be a dict after JSON round-trip"
+            for api_name, coverage_data in apis_dict.items():
+                assert isinstance(coverage_data, dict), f"Coverage data should be a dict after JSON round-trip"
+
+        total_apis = sum(len(apis) for apis in loaded_data.values())
+        logging.info(f"api_coverage.json structure valid: {len(loaded_data)} header files, {total_apis} total APIs")
+    finally:
+        os.unlink(temp_path)
+
+
 def main():
     logging.info("Starting tests...")
     test_find_shared_libraries()
@@ -344,6 +592,10 @@ def main():
     test_convert_html_directory_to_xml()
     test_docgen_html()
     test_docgen_xml()
+    test_generate_lcov_info()
+    test_compress_lcov_file()
+    test_apis_json_structure()
+    test_api_coverage_json_structure()
     logging.info("All tests completed successfully")
 
 

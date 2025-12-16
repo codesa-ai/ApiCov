@@ -87,7 +87,7 @@ def generate_lcov_info(library_dir: str, output_file: str) -> bool:
             "--rc",
             "branch_coverage=1",
             "--ignore-errors",
-            "mismatch,gcov",
+            "mismatch,gcov,source",
             "-c",
             "--directory",
             library_dir,
