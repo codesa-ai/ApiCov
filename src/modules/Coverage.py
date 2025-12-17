@@ -82,7 +82,7 @@ class LibCoverage:
             tuple: (covered_lines, total_lines) where covered_lines is the number
                    of executed lines and total_lines is the total number of lines
         """
-        logging.debug("Processing function: %s", fn)
+        logging.debug("DEBUG: Processing function: %s", fn)
         cmd = ["grep", "-A1", "-rw", fn, "--include=*.gcov_log", self._root_dir]
         results = subprocess.run(cmd, capture_output=True, text=True)
         if results.returncode != 0:
@@ -120,11 +120,11 @@ class LibCoverage:
                 final_size = max(final_size, size)
 
         if final_size == 0:
-            logging.error("Zero size for function: %s", fn)
+            logging.error("ERROR: Zero size for function: %s", fn)
 
         if final_coverage > 100.00:
-            logging.debug("Coverage greater than 100%")
-            logging.debug("%s", results.stdout)
+            logging.debug("DEBUG: Coverage greater than 100%")
+            logging.debug("DEBUG: %s", results.stdout)
 
             covered_lines = final_size
         else:
@@ -157,8 +157,8 @@ class LibCoverage:
                 float_cov = float(coverage.strip("%"))
                 # logging.debug("Float value: %r", float_cov)
                 if float_cov > 100.00:
-                    logging.warning("Error - coverage greater than 100%")
-                    logging.debug("%s", results.stdout)
+                    logging.debug("DEBUG: Coverage greater than 100%")
+                    logging.debug("DEBUG: %s", results.stdout)
                     float_cov = 100.00
 
                 line_cov = int((float_cov * size) / 100)
@@ -357,22 +357,22 @@ class LibCoverage:
         # Run gcov on all .gcno files
         for file in gcno_files:
             filename = os.path.split(file)[-1]
-            logging.debug("FileName: %s", filename)
+            logging.debug("DEBUG: FileName: %s", filename)
             if filename.startswith("."):
                 continue
-            logging.debug("Processing gcno file: %s", file)
+            logging.debug("DEBUG: Processing gcno file: %s", file)
             log_file = file.replace(".gcno", ".gcov_log")
 
             # Run gcov with options to include source code
             cmd = ["gcov", "-f", "-p", file]
-            logging.debug(f"Running gcov command: {' '.join(cmd)}")
+            logging.debug(f"DEBUG: Running gcov command: {' '.join(cmd)}")
             p = subprocess.run(cmd, cwd=self._root_dir, capture_output=True, text=True)
 
             # DEBUG: Show what happened
-            logging.debug(f"gcov return code: {p.returncode}")
-            logging.debug(f"gcov stdout: {p.stdout[:500]}")  # First 500 chars
+            logging.debug(f"DEBUG: gcov return code: {p.returncode}")
+            logging.debug(f"DEBUG: gcov stdout: {p.stdout[:500]}")  # First 500 chars
             if p.stderr:
-                logging.error(f"gcov stderr: {p.stderr}")
+                logging.debug(f"DEBUG: gcov stderr: {p.stderr}")
 
             # Filter errors and demangle C++ names before writing
             filtered_output = self.filter_errors(p.stdout)
@@ -382,10 +382,10 @@ class LibCoverage:
                 fh.write(demangled_output)
 
         # Collect all .gcov files after all gcov runs are complete
-        logging.info("Collecting all .gcov files")
+        logging.debug("DEBUG: Collecting all .gcov files")
         for gcov_file in os.listdir(self._root_dir):
             if gcov_file.endswith(".gcov"):
                 self.gcov_files.append(gcov_file)
-                logging.debug("Added .gcov file: %s", gcov_file)
+                logging.debug("DEBUG: Added .gcov file: %s", gcov_file)
 
-        logging.info(f"Collected {len(self.gcov_files)} .gcov files")
+        logging.debug(f"DEBUG: Collected {len(self.gcov_files)} .gcov files")

@@ -55,7 +55,7 @@ class ExportFetcher(object):
                 if (any(file.endswith(ext) for ext in ALL_HEADERS_EXT)):
                     header = os.path.join(root, file)
                     logging.debug(
-                        "Searching for symbol: %s in header: %s", symbol, header
+                        "DEBUG: Searching for symbol: %s in header: %s", symbol, header
                     )
                     cmd = ["grep", "-rw", symbol, header]
                     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -196,7 +196,7 @@ class ExportFetcher(object):
             for file in files:
                 if (any(file.endswith(ext) for ext in ALL_HEADERS_EXT)):
                     header_path = os.path.join(root, file)
-                    logging.debug("Parsing header file for APIs: %s", header_path)
+                    logging.debug("DEBUG: Parsing header file for APIs: %s", header_path)
                     try:
                         with open(header_path, 'r', encoding='utf-8', errors='ignore') as fh:
                             file_data = fh.read()
@@ -209,7 +209,7 @@ class ExportFetcher(object):
                             
                             found = self.find_functions_in_file(file_data)
                             if found:
-                                logging.debug("Found %d functions in %s", len(found), header_path)
+                                logging.debug("DEBUG: Found %d functions in %s", len(found), header_path)
                                 if file.endswith(tuple(CXX_HEADERS_EXT)):
                                     if "cxx_apis" not in apis:
                                         apis["cxx_apis"] = {}
@@ -258,9 +258,9 @@ class ExportFetcher(object):
         """
         nm_command = ["nm", "-D", "-C", "--defined-only", shared_lib]
         grep_command = ["grep", " T "]
-        logging.debug("Running: %s", " ".join(nm_command))
+        logging.debug("DEBUG: Running: %s", " ".join(nm_command))
         proc1 = subprocess.run(nm_command, stdout=subprocess.PIPE)
-        logging.debug("Running: %s", "".join(grep_command))
+        logging.debug("DEBUG: Running: %s", "".join(grep_command))
         proc2 = subprocess.run(
             grep_command,
             input=proc1.stdout.decode("utf-8"),

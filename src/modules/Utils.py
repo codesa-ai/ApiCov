@@ -91,7 +91,7 @@ def compress_lcov_file(
         str: Path to the created archive file, or None if failed
     """
     if not info_file or not os.path.exists(info_file):
-        logging.error(f"Info file does not exist: {info_file}")
+        logging.error(f"ERROR: Info file does not exist: {info_file}")
         return None
 
     # Determine output directory
@@ -130,5 +130,5 @@ def compress_lcov_file(
         return archive_file_path
 
     except Exception as e:
-        logging.error(f"Failed to create lcov archive: {e}")
+        logging.error(f"ERROR: Failed to create lcov archive: {e}")
         raise

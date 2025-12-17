@@ -446,7 +446,7 @@ class DocGen:
             return self.api_docs
 
         except Exception as e:
-            print(f"Error generating documentation for APIs: {e}")
+            logging.error(f"ERROR: Error generating documentation for APIs: {e}")
             return {}
 
 

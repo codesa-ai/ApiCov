@@ -31,19 +31,19 @@ def upload_data(
         "coverage": json.dumps(coverage_data),
         "headers": json.dumps(header_files),
     }
-    logging.info(f"Uploading data to {UPLOAD_URL}")
-    logging.info(f"Data: {data}")
-    logging.info(f"Archive path: {archive_path}")
+    logging.debug(f"DEBUG: Uploading data to {UPLOAD_URL}")
+    logging.debug(f"DEBUG: Data: {data}")
+    logging.debug(f"DEBUG: Archive path: {archive_path}")
     if archive_path:
         # Determine content type based on file extension
         if archive_path.endswith(".tar.xz") or archive_path.endswith(".txz"):
-            logging.info("Content type: application/x-xz")
+            logging.debug("DEBUG: Content type: application/x-xz")
             content_type = "application/x-xz"
         elif archive_path.endswith(".tgz") or archive_path.endswith(".tar.gz"):
-            logging.info("Content type: application/gzip")
+            logging.debug("DEBUG: Content type: application/gzip")
             content_type = "application/gzip"
         else:
-            logging.info("Content type: application/octet-stream")
+            logging.debug("DEBUG: Content type: application/octet-stream")
             content_type = "application/octet-stream"
 
         files = {"coverage_files": (os.path.basename(archive_path), open(archive_path, "rb"), content_type)}
@@ -54,19 +54,19 @@ def upload_data(
             logging.info("Successfully uploaded coverage data")
             return True
         except requests.exceptions.RequestException as e:
-            logging.error("Failed to upload coverage data: %s", e)
+            logging.error("ERROR: Failed to upload coverage data: %s", e)
             return False
         finally:
             files["coverage_files"][1].close()
     else:
         try:
-            logging.info("Uploading empty files")
+            logging.debug("DEBUG: Uploading empty files")
             response = requests.post(UPLOAD_URL, data=data, files={})
             response.raise_for_status()
-            logging.info("Successfully uploaded coverage data")
+            logging.debug("DEBUG: Successfully uploaded coverage data")
             return True
         except requests.exceptions.RequestException as e:
-            logging.error("Failed to upload coverage data: %s", e)
+            logging.error("ERROR: Failed to upload coverage data: %s", e)
             return False
 
 
@@ -87,7 +87,7 @@ def generate_lcov_info(library_dir: str, output_file: str) -> bool:
             "--rc",
             "branch_coverage=1",
             "--ignore-errors",
-            "mismatch,gcov",
+            "mismatch,gcov,source",
             "-c",
             "--directory",
             library_dir,
@@ -96,17 +96,16 @@ def generate_lcov_info(library_dir: str, output_file: str) -> bool:
         ]
         logging.info(f"Running lcov command: {' '.join(cmd)}")
         result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-        logging.info(f"lcov output: {result.stdout}")
         if result.stderr:
-            logging.warning(f"lcov stderr: {result.stderr}")
+            logging.debug(f"DEBUG: lcov stderr: {result.stderr}")
         logging.info(f"Successfully generated lcov info file: {output_file}")
         return True
     except subprocess.CalledProcessError as e:
-        logging.error(f"Failed to run lcov: {e}")
-        logging.error(f"lcov stderr: {e.stderr}")
+        logging.error(f"ERROR: Failed to run lcov: {e}")
+        logging.error(f"ERROR: lcov stderr: {e.stderr}")
         return False
     except FileNotFoundError:
-        logging.error("lcov command not found. Please ensure lcov is installed.")
+        logging.error("ERROR: lcov command not found. Please ensure lcov is installed.")
         return False
 
 
@@ -161,37 +160,34 @@ def main():
     # Validate project_dir exists
     project_dir = os.path.abspath(os.path.expanduser(args.project_dir))
     if not os.path.isdir(project_dir):
-        logging.error(f"Error: project_dir does not exist: {args.project_dir}")
+        logging.error(f"ERROR: project_dir does not exist: {args.project_dir}")
         sys.exit(1)
 
     # Validate api_key is not empty
     if not args.api_key or args.api_key.strip() == "":
-        logging.error("Error: api_key is required but not provided")
+        logging.error("ERROR: api_key is required but not provided")
         sys.exit(1)
 
     # Validate install_dir exists
     install_dir = os.path.abspath(os.path.expanduser(args.install_dir))
     if not os.path.isdir(install_dir):
-        logging.error(f"Error: install_dir does not exist: {args.install_dir}")
+        logging.error(f"ERROR: install_dir does not exist: {args.install_dir}")
         sys.exit(1)
 
     # Validate doxygen_path if provided
     if args.doxygen_path:
         doxygen_path = os.path.abspath(os.path.expanduser(args.doxygen_path))
         if not os.path.isdir(doxygen_path):
-            logging.error(f"Error: doxygen_path does not exist: {args.doxygen_path}")
+            logging.error(f"ERROR: doxygen_path does not exist: {args.doxygen_path}")
             sys.exit(1)
 
     # Validate headers_dir if provided
     if args.headers_dir:
         headers_dir = os.path.abspath(os.path.expanduser(args.headers_dir))
         if not os.path.isdir(headers_dir):
-            logging.error(f"Error: headers_dir does not exist: {args.headers_dir}")
+            logging.error(f"ERROR: headers_dir does not exist: {args.headers_dir}")
             sys.exit(1)
 
-    logging.info(
-        f"Looking for shared libraries in the install directory: {install_dir}"
-    )
 
     # Determine header search directory
     if args.headers_dir:
@@ -202,13 +198,13 @@ def main():
         include_dir = os.path.join(install_dir, "include")
         if os.path.isdir(include_dir):
             header_search_dir = include_dir
-            logging.info(
-                f"Found include directory, searching for headers in: {include_dir}"
+            logging.debug(
+                f"DEBUG: Found include directory, searching for headers in: {include_dir}"
             )
         else:
             header_search_dir = install_dir
-            logging.info(
-                f"No include directory found, searching for headers in: {install_dir}"
+            logging.debug(
+                f"DEBUG: No include directory found, searching for headers in: {install_dir}"
             )
 
     header_files = find_header_files(header_search_dir)
@@ -216,7 +212,7 @@ def main():
 
     # Save header files to JSON
     headers_file = os.path.join(project_dir, "headers.json")
-    logging.debug("Writing header files to: %s", headers_file)
+    logging.debug("DEBUG: Writing header files to: %s", headers_file)
     headers_data = {"headers": header_files, "count": len(header_files)}
     with open(headers_file, "w") as fh:
         json.dump(headers_data, fh, indent=2)
@@ -227,28 +223,26 @@ def main():
         # Header-based API extraction mode
         # Useful for C++ vtables where symbols may not be in shared lib exports
         logging.info("Using header-based API extraction mode")
-        logging.info("Extracting APIs from header files in: %s", header_search_dir)
         lib_exports.get_apis_from_headers(header_search_dir)
-        logging.info("Total number of APIs found from headers: %d", len(lib_exports.apis))
+        logging.info("Total number of APIs found: %d", sum(len(apis) for apis in lib_exports.apis.values()))
     else:
         # Default: shared library export-based API extraction
+        logging.info("Using shared library export-based API extraction mode")
         shared_libs = find_shared_libraries(install_dir)
-        logging.info("Shared libraries found: %s", shared_libs)
+        logging.debug("DEBUG: Shared libraries found: %s", shared_libs)
 
-        logging.debug("Identifying exports from shared libraries")
         for lib in shared_libs:
             lib_exports.get_exports_from_lib(lib)
 
-        logging.info("Total number of symbols found: %d", len(lib_exports.symbols))
+        logging.debug("DEBUG: Total number of symbols found: %d", len(lib_exports.symbols))
 
-        logging.info("Filtering non-API exports")
         install_dir = os.path.abspath(os.path.expanduser(args.install_dir))
         lib_exports.filter_non_apis(install_dir)
 
-        logging.info("Total number of APIs found: %d", len(lib_exports.apis))
+        logging.info("Total number of APIs found: %d", sum(len(apis) for apis in lib_exports.apis.values()))
     json_data = {"apis": lib_exports.apis}
     api_file = os.path.join(project_dir, "apis.json")
-    logging.debug("Writing APIs to:  %s", api_file)
+    logging.debug("DEBUG: Writing APIs to:  %s", api_file)
     with open(api_file, "w") as fh:
         json.dump(json_data, fh)
 
@@ -257,13 +251,12 @@ def main():
         for api in apis:
             all_apis.append(api)
     entry_cov = LibCoverage(all_apis, project_dir)
-    logging.info("Running gcov to identify API sizes and coverage")
+    logging.debug("DEBUG: Running gcov to identify API sizes and coverage")
     entry_cov.run_gcov_on_gcno_files()
-    logging.info("Populate API sizes and coverage")
     entry_cov.populate_entry_api_cov()
 
     if args.doxygen_path:
-        logging.info("Generating API documentation")
+        logging.info("Doxygen path provided, generating API documentation")
         doxygen_path = os.path.abspath(os.path.expanduser(args.doxygen_path))
         doc_gen = DocGen(doxygen_path, xml=args.xml)
         apidoc = doc_gen.generate_apidoc(all_apis)
@@ -287,13 +280,13 @@ def main():
                 json_data[file][api]["full_size"] = entry_cov.api_sizes[api]
                 json_data[file][api]["covered_lines"] = entry_cov.api_coverage[api]
             else:
-                logging.error("Failed to find size for API: %s", api)
+                logging.error("ERROR: Failed to find size for API: %s", api)
                 no_cov_apis.append(api)
 
             if apidoc and api in apidoc:
                 json_data[file][api]["apidoc"] = apidoc[api]
             else:
-                logging.error("Failed to find documentation for API: %s", api)
+                logging.debug("DEBUG: Failed to find documentation for API: %s", api)
                 no_doc_apis.append(api)
 
     apicov_file = os.path.join(args.project_dir, "api_coverage.json")
@@ -302,12 +295,12 @@ def main():
         json.dump(json_data, fh)
 
     if no_cov_apis:
-        logging.error(
+        logging.warning(
             "Failed to find size for %d APIs: %s", len(no_cov_apis), no_cov_apis
         )
 
     if no_doc_apis:
-        logging.error(
+        logging.warning(
             "Failed to find documentation for %d APIs: %s",
             len(no_doc_apis),
             no_doc_apis,
@@ -319,36 +312,36 @@ def main():
         logging.info("Compiler type is gcc, using lcov to generate coverage info")
         baseline_info = os.path.join(project_dir, "baseline.info")
         if generate_lcov_info(project_dir, baseline_info):
-            logging.info("Creating lcov archive for upload")
+            logging.debug("DEBUG: Creating lcov archive for upload")
             archive_path = compress_lcov_file(
                 baseline_info,
                 output_path=project_dir,
                 archive_name="coverage_data.tar.xz",
             )
             if archive_path:
-                logging.info(f"Lcov archive created successfully: {archive_path}")
+                logging.debug(f"DEBUG: Lcov archive created successfully: {archive_path}")
             else:
-                logging.warning("Failed to create lcov archive")
+                logging.error("ERROR: Failed to create lcov archive")
         else:
-            logging.error("Failed to generate lcov info file")
+            logging.error("ERROR: Failed to generate lcov info file")
     else:
         if args.compile:
-            logging.info(
-                f"Compiler type '{args.compile}' is not gcc, skipping coverage file generation"
+            logging.debug(
+                f"DEBUG: Compiler type '{args.compile}' is not gcc, skipping coverage file generation"
             )
         else:
-            logging.info(
-                "No compiler type specified, skipping coverage file generation"
+            logging.debug(
+                "DEBUG: No compiler type specified, skipping coverage file generation"
             )
         # Create an empty tar file to avoid uploading huge gcov files
-        logging.info("Creating empty archive placeholder")
+        logging.debug("DEBUG: Creating empty archive placeholder")
         archive_path = os.path.join(project_dir, "coverage_data.tar.xz")
         try:
             with tarfile.open(archive_path, "w:xz"):
                 pass  # Create empty archive
-            logging.info(f"Empty archive created: {archive_path}")
+            logging.debug(f"DEBUG: Empty archive created: {archive_path}")
         except Exception as e:
-            logging.error(f"Failed to create empty archive: {e}")
+            logging.error(f"ERROR: Failed to create empty archive: {e}")
             archive_path = None
 
     # Upload coverage data if API key is provided

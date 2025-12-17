@@ -15,15 +15,15 @@ venv:
 test-prep:
   cd "$(dirname "$(readlink -f "$0")")"
   git submodule update --init --recursive
-  chmod +x ./src/tests/prep_target.sh
+  chmod +x ./tests/prep_target.sh
   ./src/tests/prep_target.sh
   cd ../../..
 
 # Run the tests (vorbis)
 test:
-  pytest src/tests/tests.py -v
+  PYTHONPATH=src pytest tests/tests.py -v
 
-# Build binary -- ONLU USE FOR LOCAL BUILDING - BUILDS FOR THE ACTION ARE DONE IN THE RELEASE WORKFLOW
+# Build binary locally (may have GLIBC compatibility issues - prefer build-docker for releases)
 build:
   . .venv/bin/activate && .venv/bin/python -m PyInstaller --onefile \
   --clean \
@@ -46,6 +46,21 @@ build:
   --python-option="--enable-shared" \
   --add-data "src/modules:modules" \
   src/apicov.py
+
+# Build binary using Docker for Ubuntu 22.04 compatibility (recommended for releases)
+build-docker:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  echo "Building Docker image for Ubuntu 22.04..."
+  docker build -f Dockerfile.build -t apicov-builder .
+  echo "Extracting binary from container..."
+  mkdir -p dist
+  docker create --name apicov-extract apicov-builder
+  docker cp apicov-extract:/app/dist/apicov dist/apicov
+  docker rm apicov-extract
+  chmod +x dist/apicov
+  echo "✅ Binary built successfully at dist/apicov"
+  echo "   This binary is compatible with Ubuntu 22.04+ (GLIBC 2.35+)"
 
 # reformat the code with Ruff
 format:
