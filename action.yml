@@ -83,6 +83,7 @@ runs:
         
         chmod +x "${GITHUB_ACTION_PATH}/dist/apicov"
         eval "$CMD"
+        echo "Executing ApiCov: $CMD"
       shell: bash
 
     - name: "Upload JSON files"
