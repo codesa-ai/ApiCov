@@ -32,6 +32,9 @@ inputs:
   headers_dir:
     description: 'Path to directory containing header files. If not provided, defaults to install_path/include or install_path'
     required: false
+  build_path:
+    description: 'Path to build directory (where compilation happened). If not provided, auto-detects from common locations'
+    required: false
 
 runs:
   using: "composite"
@@ -80,7 +83,12 @@ runs:
         if [ -n "${{ inputs.headers_dir }}" ]; then
           CMD="$CMD --headers-dir \"${{ inputs.headers_dir }}\""
         fi
-        
+
+        # Only add build_path if it's not empty
+        if [ -n "${{ inputs.build_path }}" ]; then
+          CMD="$CMD --build-dir \"${{ inputs.build_path }}\""
+        fi
+
         chmod +x "${GITHUB_ACTION_PATH}/dist/apicov"
         eval "$CMD"
         echo "Executing ApiCov: $CMD"
@@ -93,6 +101,7 @@ runs:
         path: |
           ${{inputs.root_path}}/apis.json
           ${{inputs.root_path}}/headers.json
+          ${{inputs.root_path}}/linking_flags.json
           ${{inputs.root_path}}/api_coverage.json
           ${{inputs.root_path}}/coverage_data.tgz
         if-no-files-found: error
