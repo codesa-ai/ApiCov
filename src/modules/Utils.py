@@ -1,4 +1,8 @@
+import json
 import os
+import re
+import shlex
+import subprocess
 import tarfile
 from modules.logging_config import logging
 
@@ -206,8 +210,6 @@ def _extract_from_compile_commands(compile_commands_path: str) -> list[str]:
     Returns:
         list[str]: Deduplicated list of linking flags
     """
-    import json
-
     try:
         with open(compile_commands_path, 'r') as f:
             commands = json.load(f)
@@ -248,8 +250,6 @@ def _parse_linking_flags_from_command(command: str) -> list[str]:
     Returns:
         list[str]: List of linking flags
     """
-    import shlex
-
     flags = []
 
     try:
@@ -348,9 +348,6 @@ def _extract_from_meson_introspection(build_dir: str) -> list[str]:
     Returns:
         list[str]: List of linking flags
     """
-    import subprocess
-    import json
-
     all_flags = set()
 
     try:
@@ -450,8 +447,6 @@ def _extract_from_makefile(makefile_path: str) -> list[str]:
             content = f.read()
 
         # Look for common linker flag variables
-        import re
-
         # Pattern to match variable assignments (handles multi-line with backslash)
         var_pattern = r'^(LDFLAGS|LDLIBS|LIBS|LINKFLAGS)\s*[:\+]?=\s*(.*)$'
 

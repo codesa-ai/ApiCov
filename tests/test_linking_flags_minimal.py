@@ -10,7 +10,7 @@ import json
 import tempfile
 
 # Add the src directory to the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from modules.Utils import (
     extract_linking_flags,
@@ -55,16 +55,10 @@ def test_parse_space_separated():
 def test_compile_commands_extraction():
     """Test extraction from compile_commands.json"""
     print("Test: compile_commands_extraction...", end=" ")
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
         compile_commands = [
-            {
-                "command": "gcc -o test.o test.c -lstdc++ -lpthread",
-                "file": "test.c"
-            },
-            {
-                "command": "g++ -o main.o main.cpp -lm -L/opt/lib",
-                "file": "main.cpp"
-            }
+            {"command": "gcc -o test.o test.c -lstdc++ -lpthread", "file": "test.c"},
+            {"command": "g++ -o main.o main.cpp -lm -L/opt/lib", "file": "main.cpp"},
         ]
         json.dump(compile_commands, f)
         f.flush()
@@ -85,7 +79,7 @@ def test_cmake_cache_extraction():
     with tempfile.TemporaryDirectory() as tmpdir:
         cache_file = os.path.join(tmpdir, "CMakeCache.txt")
 
-        with open(cache_file, 'w') as f:
+        with open(cache_file, "w") as f:
             f.write("# CMake cache\n")
             f.write("CMAKE_EXE_LINKER_FLAGS:STRING=-lpthread -lstdc++\n")
             f.write("CMAKE_SHARED_LINKER_FLAGS:STRING=-L/usr/lib -lm\n")
@@ -102,7 +96,7 @@ def test_cmake_cache_extraction():
 def test_makefile_extraction():
     """Test extraction from Makefile"""
     print("Test: makefile_extraction...", end=" ")
-    with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
         f.write("CC = gcc\n")
         f.write("LDFLAGS = -lpthread -L/usr/lib\n")
         f.write("LDLIBS = -lstdc++ -lm\n")
@@ -122,7 +116,7 @@ def test_makefile_extraction():
 def test_makefile_multiline():
     """Test extraction of multi-line flags"""
     print("Test: makefile_multiline...", end=" ")
-    with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
         f.write("LDFLAGS = -lpthread \\\n")
         f.write("          -lstdc++ \\\n")
         f.write("          -L/usr/lib\n")
@@ -143,10 +137,10 @@ def test_end_to_end_with_compile_commands():
     with tempfile.TemporaryDirectory() as tmpdir:
         compile_commands_file = os.path.join(tmpdir, "compile_commands.json")
 
-        with open(compile_commands_file, 'w') as f:
-            json.dump([
-                {"command": "gcc test.c -lstdc++ -lpthread", "file": "test.c"}
-            ], f)
+        with open(compile_commands_file, "w") as f:
+            json.dump(
+                [{"command": "gcc test.c -lstdc++ -lpthread", "file": "test.c"}], f
+            )
 
         flags = extract_linking_flags(tmpdir, "cmake")
 
@@ -161,7 +155,7 @@ def test_end_to_end_with_cmake_cache():
     with tempfile.TemporaryDirectory() as tmpdir:
         cache_file = os.path.join(tmpdir, "CMakeCache.txt")
 
-        with open(cache_file, 'w') as f:
+        with open(cache_file, "w") as f:
             f.write("CMAKE_EXE_LINKER_FLAGS:STRING=-lpthread\n")
 
         flags = extract_linking_flags(tmpdir, "cmake")
@@ -181,10 +175,10 @@ def test_nonexistent_build_dir():
 def test_deduplication():
     """Test that duplicate flags are deduplicated"""
     print("Test: deduplication...", end=" ")
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
         compile_commands = [
             {"command": "gcc test1.c -lstdc++ -lpthread", "file": "test1.c"},
-            {"command": "gcc test2.c -lstdc++ -lm", "file": "test2.c"}
+            {"command": "gcc test2.c -lstdc++ -lm", "file": "test2.c"},
         ]
         json.dump(compile_commands, f)
         f.flush()
@@ -193,7 +187,9 @@ def test_deduplication():
         os.unlink(f.name)
 
         # Count occurrences of -lstdc++
-        assert flags.count("-lstdc++") == 1, f"Expected 1 occurrence of -lstdc++, got {flags.count('-lstdc++')}"
+        assert flags.count("-lstdc++") == 1, (
+            f"Expected 1 occurrence of -lstdc++, got {flags.count('-lstdc++')}"
+        )
     print("PASS")
 
 
