@@ -10,6 +10,8 @@ from modules.Utils import (
     find_shared_libraries,
     find_header_files,
     compress_lcov_file,
+    identify_build_system,
+    extract_linking_flags,
 )
 from modules.Coverage import LibCoverage
 from modules.logging_config import logging
@@ -21,6 +23,7 @@ UPLOAD_URL = "https://callback-373812666155.europe-west2.run.app"
 def upload_data(
     coverage_data: dict,
     header_files: list,
+    linking_flags: list,
     api_key: str,
     archive_path: str | None = None,
 ):
@@ -30,6 +33,7 @@ def upload_data(
         "api_key": api_key,
         "coverage": json.dumps(coverage_data),
         "headers": json.dumps(header_files),
+        "linking_flags": json.dumps(linking_flags),
     }
     logging.debug(f"DEBUG: Uploading data to {UPLOAD_URL}")
     logging.debug(f"DEBUG: Data: {data}")
@@ -154,6 +158,14 @@ def main():
         help="Path to the directory containing header files. If not provided, defaults to "
              "install_dir/include (if exists) or install_dir",
     )
+    parser.add_argument(
+        "--build-dir",
+        type=str,
+        default=None,
+        help="Path to the build directory (where compilation happened). "
+             "If not provided, auto-detects from common locations: project root, "
+             "project/build, project/_build, project/out, or install_dir",
+    )
 
     args = parser.parse_args()
 
@@ -188,6 +200,36 @@ def main():
             logging.error(f"ERROR: headers_dir does not exist: {args.headers_dir}")
             sys.exit(1)
 
+    # Determine build directory
+    if args.build_dir:
+        build_dir = os.path.abspath(os.path.expanduser(args.build_dir))
+        if not os.path.isdir(build_dir):
+            logging.warning(f"WARNING: Specified build_dir does not exist: {args.build_dir}")
+            build_dir = None
+        else:
+            logging.info(f"Using specified build directory: {build_dir}")
+    else:
+        build_dir = None
+
+    # If build_dir not specified or doesn't exist, search common locations
+    if build_dir is None:
+        candidate_dirs = [
+            project_dir,
+            os.path.join(project_dir, "build"),
+            os.path.join(project_dir, "_build"),
+            os.path.join(project_dir, "out"),
+            install_dir, # Fallback to install dir
+        ]
+
+        for candidate in candidate_dirs:
+            if os.path.isdir(candidate):
+                build_dir = candidate
+                logging.info(f"Auto-detected build directory: {build_dir}")
+                break
+
+        if build_dir is None:
+            logging.warning("Could not find a valid build directory, using install_dir")
+            build_dir = install_dir
 
     # Determine header search directory
     if args.headers_dir:
@@ -216,6 +258,20 @@ def main():
     headers_data = {"headers": header_files, "count": len(header_files)}
     with open(headers_file, "w") as fh:
         json.dump(headers_data, fh, indent=2)
+
+    # Identify build system and extract linking flags
+    build_system = identify_build_system(project_dir)
+    logging.info(f"Detected build system: {build_system}")
+
+    linking_flags = extract_linking_flags(build_dir, build_system)
+    logging.info(f"Linking flags found: {linking_flags}")
+
+    # Save linking flags to JSON
+    linking_flags_file = os.path.join(project_dir, "linking_flags.json")
+    logging.debug("DEBUG: Writing linking flags to: %s", linking_flags_file)
+    linking_flags_data = {"linking_flags": linking_flags, "count": len(linking_flags)}
+    with open(linking_flags_file, "w") as fh:
+        json.dump(linking_flags_data, fh, indent=2)
 
     lib_exports = ExportFetcher()
 
@@ -347,7 +403,7 @@ def main():
     # Upload coverage data if API key is provided
     if args.api_key:
         logging.info("Uploading data to endpoint")
-        upload_data(json_data, header_files, args.api_key, archive_path)
+        upload_data(json_data, header_files, linking_flags, args.api_key, archive_path)
 
 
 if __name__ == "__main__":

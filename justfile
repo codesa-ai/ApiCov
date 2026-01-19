@@ -21,6 +21,9 @@ test-prep:
 
 # Run the tests (vorbis)
 test:
+  @echo "Running linking flags tests..."
+  python3 tests/test_linking_flags_minimal.py
+  @echo ""
   PYTHONPATH=src pytest tests/tests.py -v
 
 # Build binary locally (may have GLIBC compatibility issues - prefer build-docker for releases)
