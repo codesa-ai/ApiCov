@@ -218,7 +218,7 @@ def main():
             os.path.join(project_dir, "build"),
             os.path.join(project_dir, "_build"),
             os.path.join(project_dir, "out"),
-            install_dir, # Fallback to install dir
+            install_dir,
         ]
 
         for candidate in candidate_dirs:
@@ -300,12 +300,18 @@ def main():
     api_file = os.path.join(project_dir, "apis.json")
     logging.debug("DEBUG: Writing APIs to:  %s", api_file)
     with open(api_file, "w") as fh:
-        json.dump(json_data, fh)
+        json.dump(json_data, fh, indent=2)
 
+    # Build list of simple API names for Coverage module (backward compatible)
+    # Coverage.py uses simple names for gcov matching
     all_apis = []
     for file, apis in lib_exports.apis.items():
         for api in apis:
-            all_apis.append(api)
+            # Handle both old format (string) and new format (dict)
+            if isinstance(api, dict):
+                all_apis.append(api["simple"])
+            else:
+                all_apis.append(api)
     entry_cov = LibCoverage(all_apis, project_dir)
     logging.debug("DEBUG: Running gcov to identify API sizes and coverage")
     entry_cov.run_gcov_on_gcno_files()
@@ -326,24 +332,40 @@ def main():
     for file, apis in lib_exports.apis.items():
         json_data[file] = {}
         for api in apis:
-            # Always create an entry for each API with default values
-            json_data[file][api] = {
+            # Handle both old format (string) and new format (dict)
+            if isinstance(api, dict):
+                qualified_name = api["qualified"]
+                simple_name = api["simple"]
+                signature = api.get("signature", "")
+            else:
+                # Backward compatibility: old format was just a string
+                qualified_name = api
+                simple_name = api
+                signature = ""
+
+            # Use qualified name as the key in the output JSON
+            # This allows distinguishing between methods with same name in different classes
+            json_data[file][qualified_name] = {
+                "simple_name": simple_name,  # Include simple name for reference
+                "signature": signature,  # Include signature
                 "full_size": 0,
                 "covered_lines": 0
             }
-            
-            if api in entry_cov.api_sizes:
-                json_data[file][api]["full_size"] = entry_cov.api_sizes[api]
-                json_data[file][api]["covered_lines"] = entry_cov.api_coverage[api]
-            else:
-                logging.error("ERROR: Failed to find size for API: %s", api)
-                no_cov_apis.append(api)
 
-            if apidoc and api in apidoc:
-                json_data[file][api]["apidoc"] = apidoc[api]
+            # Coverage data is keyed by simple name (from LibCoverage)
+            if simple_name in entry_cov.api_sizes:
+                json_data[file][qualified_name]["full_size"] = entry_cov.api_sizes[simple_name]
+                json_data[file][qualified_name]["covered_lines"] = entry_cov.api_coverage[simple_name]
             else:
-                logging.debug("DEBUG: Failed to find documentation for API: %s", api)
-                no_doc_apis.append(api)
+                logging.error("ERROR: Failed to find size for API: %s", simple_name)
+                no_cov_apis.append(simple_name)
+
+            # Documentation is also keyed by simple name
+            if apidoc and simple_name in apidoc:
+                json_data[file][qualified_name]["apidoc"] = apidoc[simple_name]
+            else:
+                logging.debug("DEBUG: Failed to find documentation for API: %s", simple_name)
+                no_doc_apis.append(simple_name)
 
     apicov_file = os.path.join(args.project_dir, "api_coverage.json")
     logging.info("Writing API data to: %s", apicov_file)
@@ -394,7 +416,7 @@ def main():
         archive_path = os.path.join(project_dir, "coverage_data.tar.xz")
         try:
             with tarfile.open(archive_path, "w:xz"):
-                pass  # Create empty archive
+                pass
             logging.debug(f"DEBUG: Empty archive created: {archive_path}")
         except Exception as e:
             logging.error(f"ERROR: Failed to create empty archive: {e}")

@@ -7,6 +7,7 @@ import subprocess
 from modules.logging_config import logging
 
 from modules.Utils import CXX_HEADERS_EXT, C_HEADERS_EXT, ALL_HEADERS_EXT
+from modules.ClangParser import ClangParser, is_cpp_header, CLANG_AVAILABLE
 
 class ExportFetcher(object):
     """
@@ -39,7 +40,7 @@ class ExportFetcher(object):
         self.symbols = []
         self.apis = {}
         self.headers = []
-        self.function_names = set()  # Track already seen function names
+        self.function_names = set()
 
     def grep_for_symbol(self, symbol: str, install_dir: str) -> None:
         """
@@ -61,11 +62,20 @@ class ExportFetcher(object):
                     result = subprocess.run(cmd, capture_output=True, text=True)
                     if result.returncode == 0:
                         logging.info("Adding Api: %s", symbol)
+                        # Create structured API data
+                        api_data = {
+                            "qualified": symbol,  # No qualified name from grep, use simple name
+                            "simple": symbol,
+                            "signature": ""  # No signature from grep
+                        }
+
                         if file in self.apis:
-                            if symbol not in self.apis[file]:
-                                self.apis[file].append(symbol)
+                            # Check if this symbol already exists
+                            existing_names = [api["simple"] for api in self.apis[file]]
+                            if symbol not in existing_names:
+                                self.apis[file].append(api_data)
                         else:
-                            self.apis[file] = [symbol]
+                            self.apis[file] = [api_data]
                         return
 
     def filter_non_apis(self, install_dir: str) -> None:
@@ -91,11 +101,8 @@ class ExportFetcher(object):
             list: List of function names found in the file.
         """
         found_functions = []
-        
-        # Common standard library and system functions to exclude
-        # These are often called within inline functions in headers
+
         stdlib_functions = {
-            # C standard library
             'printf', 'fprintf', 'sprintf', 'snprintf', 'scanf', 'fscanf', 'sscanf',
             'malloc', 'calloc', 'realloc', 'free', 'memcpy', 'memmove', 'memset', 'memcmp',
             'strcpy', 'strncpy', 'strcat', 'strncat', 'strcmp', 'strncmp', 'strlen', 'strstr',
@@ -103,73 +110,41 @@ class ExportFetcher(object):
             'fopen', 'fclose', 'fread', 'fwrite', 'fgets', 'fputs', 'fseek', 'ftell',
             'exit', 'abort', 'atexit', 'getenv', 'setenv', 'system',
             'assert', 'static_assert',
-            # Dynamic loading
             'dlopen', 'dlclose', 'dlsym', 'dlerror',
-            # Windows API
             'LoadLibrary', 'LoadLibraryA', 'LoadLibraryW', 'FreeLibrary', 'GetProcAddress',
             'GetLastError', 'SetLastError', 'GetModuleHandle', 'GetModuleHandleA', 'GetModuleHandleW',
             'SetEnvironmentVariable', 'SetEnvironmentVariableA', 'SetEnvironmentVariableW',
             'GetEnvironmentVariable', 'GetEnvironmentVariableA', 'GetEnvironmentVariableW',
-            # POSIX
             'open', 'close', 'read', 'write', 'stat', 'fstat', 'lstat',
-            # C++ keywords that might match
             'if', 'while', 'for', 'switch', 'return', 'sizeof', 'typeof', 'alignof',
             'new', 'delete', 'throw', 'catch', 'try',
         }
-        
-        # Pattern for C-style function declarations at file/namespace scope
-        # Matches: [export_macro] return_type function_name(params);
-        # The key is requiring proper return type (not just any identifier)
+
         c_pattern = r"^\s*(?:\w+\s+)*?(?:extern\s+)?(?:const\s+)?(?:unsigned\s+|signed\s+)?(?:void|int|char|short|long|float|double|bool|size_t|ssize_t|\w+_t|\w+\*+)\s+\*?\s*(\w+)\s*\([^)]*\)\s*;"
-        
-        # Pattern for functions with explicit export macros (most reliable indicator of public API)
-        # Matches: EXPORT_MACRO return_type function_name(params);
         export_pattern = r"^\s*[A-Z][A-Z0-9_]*(?:PUBLIC|EXPORT|API|DLLPUBLIC|VISIBLE)\w*\s+[\w\s*&]+?\s+\*?\s*(\w+)\s*\([^)]*\)\s*;"
-        
-        # Pattern for C++ method declarations (including virtual methods for vtables)
-        # Matches: virtual return_type method_name(params) [const] [= 0];
         cpp_pattern = r"^\s*(?:virtual\s+)(?:const\s+)?[\w\s*&]+?\s+[*&]?\s*(\w+)\s*\([^)]*\)\s*(?:const)?\s*(?:override)?\s*(?:=\s*0)?\s*;"
-        
-        # Pattern for function pointer typedefs in structs (vtable style APIs)
-        # Matches: return_type (*function_name) (params);
         vtable_pattern = r"^\s*[\w\s*]+?\s+\(\*\s*(\w+)\s*\)\s*\([^)]*\)\s*;"
-        
-        # Pattern for C++ class methods with inline bodies
-        # Matches: return_type method_name(params) { ... } or return_type method_name(params) const { ... }
-        # The [*&]?\s* handles pointer/reference attached to function name (e.g., Type *get() {})
         cpp_inline_pattern = r"^\s*(?:virtual\s+)?(?:static\s+|inline\s+)?(?:const\s+)?[\w\s*&:<>]+?\s+[*&]?\s*(\w+)\s*\([^)]*\)\s*(?:const)?\s*(?:override)?\s*(?:noexcept)?\s*\{"
-        
-        # Pattern for multi-line function declarations (captures function name from first line)
-        # Matches: return_type function_name( on its own line (params continue on next lines)
         multiline_pattern = r"^\s*(?:virtual\s+)?(?:static\s+|inline\s+)?(?:const\s+)?[\w\s*&:<>]+?\s+[*&]?\s*(\w+)\s*\([^)]*,$"
-        
+
         for pattern in [export_pattern, c_pattern, cpp_pattern, vtable_pattern, cpp_inline_pattern, multiline_pattern]:
             regex = re.compile(pattern, re.MULTILINE)
             matches = regex.findall(file_data)
             for function_name in matches:
                 fn_name = function_name.strip()
-                # Skip standard library and system functions
                 if fn_name in stdlib_functions:
                     continue
-                # Skip very short names (likely false positives)
                 if len(fn_name) < 2:
                     continue
-                # Skip names that are all uppercase (likely macros)
                 if fn_name.isupper():
                     continue
-                # Skip names that look like member variables (common C++ naming conventions)
-                # Patterns: mFoo, mpFoo, pFoo, m_foo (Hungarian notation style)
                 if len(fn_name) > 2:
-                    # mpFoo pattern (member pointer)
                     if fn_name.startswith('mp') and fn_name[2].isupper():
                         continue
-                    # mFoo pattern (member variable)  
                     if fn_name[0] == 'm' and fn_name[1].isupper():
                         continue
-                    # pFoo pattern (pointer parameter in initializer lists)
                     if fn_name[0] == 'p' and fn_name[1].isupper():
                         continue
-                    # m_foo pattern (underscore style)
                     if fn_name.startswith('m_'):
                         continue
                 if fn_name not in found_functions:
@@ -183,52 +158,83 @@ class ExportFetcher(object):
         This mode is useful for C++ code with vtables where symbols may not be exported
         in shared libraries but are still callable via vtable dispatch.
 
+        For C++ headers, uses libclang for accurate parsing when available.
+        Falls back to regex-based parsing for C headers or if libclang fails.
+
         Args:
             header_dir (str): The root directory containing header files.
 
         Returns:
-            list: List of API function names found in headers.
+            dict: Dictionary mapping header files to lists of API info dicts.
+                  Each API info dict contains: qualified_name, simple_name, signature
         """
 
         apis = {}
-        
+        clang_parser = None
+
+        # Initialize ClangParser if available
+        if CLANG_AVAILABLE:
+            try:
+                clang_parser = ClangParser(header_dirs=[header_dir])
+                logging.info("Using libclang for C++ header parsing")
+            except Exception as e:
+                logging.warning(f"Could not initialize ClangParser: {e}. Falling back to regex.")
+
         for root, _, files in os.walk(header_dir):
             for file in files:
                 if (any(file.endswith(ext) for ext in ALL_HEADERS_EXT)):
                     header_path = os.path.join(root, file)
                     logging.debug("DEBUG: Parsing header file for APIs: %s", header_path)
+
+                    # Try libclang for C++ headers
+                    if clang_parser and is_cpp_header(header_path):
+                        try:
+                            api_info_dict = clang_parser.parse_header(header_path)
+                            if api_info_dict:
+                                # Convert ApiInfo objects to structured dicts
+                                api_list = []
+                                for api_info in api_info_dict.values():
+                                    api_list.append({
+                                        "qualified": api_info.qualified_name,
+                                        "simple": api_info.simple_name,
+                                        "signature": api_info.signature or ""
+                                    })
+
+                                if api_list:
+                                    apis[file] = api_list
+                                    logging.debug(f"DEBUG: ClangParser found {len(api_list)} functions in {header_path}")
+                                    continue  # Successfully parsed with clang, skip regex
+                        except Exception as e:
+                            logging.warning(f"ClangParser failed for {header_path}: {e}. Falling back to regex.")
+
+                    # Fallback to regex-based parsing (for C headers or if clang failed)
                     try:
                         with open(header_path, 'r', encoding='utf-8', errors='ignore') as fh:
                             file_data = fh.read()
-                            # Remove single-line comments
                             file_data = re.sub(r'//.*$', '', file_data, flags=re.MULTILINE)
-                            # Remove multi-line comments
                             file_data = re.sub(r'/\*.*?\*/', '', file_data, flags=re.DOTALL)
-                            # Remove preprocessor macros that span multiple lines
                             file_data = re.sub(r'#.*?(?<!\\)\n', '\n', file_data)
-                            
+
                             found = self.find_functions_in_file(file_data)
                             if found:
-                                logging.debug("DEBUG: Found %d functions in %s", len(found), header_path)
-                                if file.endswith(tuple(CXX_HEADERS_EXT)):
-                                    if "cxx_apis" not in apis:
-                                        apis["cxx_apis"] = {}
-                                    apis["cxx_apis"][file] = found
-                                if file.endswith(tuple(C_HEADERS_EXT)):
-                                    if "c_apis" not in apis:
-                                        apis["c_apis"] = {}
-                                    apis["c_apis"][file] = found
+                                logging.debug("DEBUG: Regex found %d functions in %s", len(found), header_path)
+                                # Convert to structured format (regex can't extract qualified names or signatures)
+                                api_list = []
+                                for func_name in found:
+                                    api_list.append({
+                                        "qualified": func_name,  # No qualified name from regex
+                                        "simple": func_name,
+                                        "signature": ""  # No signature from regex
+                                    })
+                                apis[file] = api_list
                     except Exception as e:
                         logging.warning("Failed to parse header %s: %s", header_path, e)
-        
-        # In header mode, all found symbols are considered APIs
-        # Merge all category dictionaries (cxx_apis, c_apis) into self.apis
-        self.apis = {}
-        for category_apis in apis.values():
-            self.apis.update(category_apis)
+
+        # Store in self.apis
+        self.apis = apis
         logging.info("Extracted APIs from %d header files", len(self.apis))
-        for file, apis in self.apis.items():
-            logging.info("Found %d APIs in %s", len(apis), file)
+        for file, api_list in self.apis.items():
+            logging.info("Found %d APIs in %s", len(api_list), file)
         return self.apis
 
     def _add_symbol(self, symbol: str) -> None:
@@ -272,32 +278,30 @@ class ExportFetcher(object):
                 continue
             if line.find("mangle_path") != -1:
                 continue
-            # This is a c++ symbol
             if line.find("@@") != -1:
                 line = line.split("@@")[0]
 
             line = line.strip()
             if "::" in line:
-                # if line.find("operator") != -1:
-                #     continue
-                pattern = r"\w+::(\w+)[\(\[]"
+                # Extract qualified C++ name (namespace::Class::method)
+                # Changed from r"\w+::(\w+)[\(\[]" to preserve full qualified name
+                pattern = r"([\w:]+)[\(\[]"
                 regex = re.compile(pattern, re.M)
                 matches = regex.findall(line)
-                for symbol in matches:
-                    self._add_symbol(symbol)
+                for qualified_name in matches:
+                    # Extract simple name (last component after ::)
+                    simple_name = qualified_name.split('::')[-1]
+                    # Store simple name for backward compatibility with filter_non_apis
+                    self._add_symbol(simple_name)
             elif line:
                 symbol = line.split()[-1]
                 if symbol == "":
                     continue
                 self._add_symbol(symbol)
-        # proc2 = subprocess.Popen(grep_command, stdin=proc1.stdout, stdout=subprocess.PIPE)
-        # proc1.stdout.close()
         return proc2.returncode
 
 if __name__ == "__main__":
     d = ExportFetcher()
-    # d.crawl_dir(sys.argv[1], sys.argv[2])
-    # print(d.function_names)
 
     json_data = {}
     exports = []
@@ -307,20 +311,3 @@ if __name__ == "__main__":
     json_data["apis"] = d.apis
     with open("apis.json", "w") as fh:
         json.dump(json_data, fh)
-
-    
-
-    # shared_libs = sys.argv[1].split(",")
-    # for lib in shared_libs:
-    #     d.get_exports_from_lib(lib)
-
-    # install_dirs = sys.argv[2].split(",")
-    # for install_dir in install_dirs:
-    #     d.filter_non_apis(install_dir)
-    # json_data["library"] = d.apis
-    # with open("apis.json", "w") as fh:
-    #     json.dump(json_data, fh)
-
-    # with open("apis.txt", "w") as fh:
-    #     for fn in d.apis:
-    #         fh.write(fn + "\n")
