@@ -138,7 +138,7 @@ def compress_lcov_file(
         raise
 
 
-def extract_linking_flags(build_dir: str, build_system: str) -> list[str]:
+def extract_linking_flags(build_dir: str, build_system: str) -> str:
     """
     Extracts linking flags from the build directory using a hybrid strategy.
 
@@ -152,11 +152,11 @@ def extract_linking_flags(build_dir: str, build_system: str) -> list[str]:
         build_system (str): Build system type ('cmake', 'meson', 'make', 'ninja', 'unknown')
 
     Returns:
-        list[str]: Deduplicated list of linking flags (e.g., ['-lstdc++', '-lpthread', '-L/usr/lib'])
+        str: Space-separated linking flags (e.g., '-lstdc++ -lpthread -L/usr/lib') or empty string
     """
     if not os.path.isdir(build_dir):
         logging.warning(f"Build directory does not exist: {build_dir}")
-        return []
+        return ""
 
     logging.info(f"Extracting linking flags from {build_dir} (build system: {build_system})")
 
@@ -167,19 +167,23 @@ def extract_linking_flags(build_dir: str, build_system: str) -> list[str]:
         flags = _extract_from_compile_commands(compile_commands_path)
         if flags:
             logging.info(f"Extracted {len(flags)} unique linking flags from compile_commands.json")
-            return flags
+            return ' '.join(flags)
 
     # Build system introspection
     if build_system == "cmake":
+        logging.debug("DEBUG: Attempting to extract from CMakeCache.txt")
         flags = _extract_from_cmake_cache(build_dir)
         if flags:
             logging.info(f"Extracted {len(flags)} unique linking flags from CMake cache")
-            return flags
+            return ' '.join(flags)
+        logging.debug("DEBUG: No flags found in CMakeCache.txt")
     elif build_system == "meson":
+        logging.debug("DEBUG: Attempting meson introspection")
         flags = _extract_from_meson_introspection(build_dir)
         if flags:
             logging.info(f"Extracted {len(flags)} unique linking flags from Meson introspection")
-            return flags
+            return ' '.join(flags)
+        logging.debug("DEBUG: Meson introspection yielded no flags")
 
     # Direct build file parsing
     if build_system == "make":
@@ -189,15 +193,24 @@ def extract_linking_flags(build_dir: str, build_system: str) -> list[str]:
         else:
             flags = []
     else:
-        logging.warning(f"No extraction method available for build system: {build_system}")
         flags = []
+
+    # Fallback: If no flags found yet, try Makefile extraction regardless of detected build system
+    # This handles cases where projects have multiple build systems (e.g., both CMakeLists.txt and Makefile)
+    if not flags and build_system != "make":
+        logging.debug("DEBUG: Primary extraction failed, trying Makefile as fallback")
+        makefile_path = _find_makefile(build_dir)
+        if makefile_path:
+            flags = _extract_from_makefile(makefile_path)
+            if flags:
+                logging.info(f"Extracted {len(flags)} unique linking flags from Makefile (fallback)")
 
     if flags:
         logging.info(f"Extracted {len(flags)} unique linking flags from {build_system} build files")
+        return ' '.join(flags)
     else:
         logging.warning(f"No linking flags found in {build_dir}")
-
-    return flags
+        return ""
 
 
 def _extract_from_compile_commands(compile_commands_path: str) -> list[str]:
@@ -406,21 +419,23 @@ def _extract_from_meson_introspection(build_dir: str) -> list[str]:
 
 def _find_makefile(build_dir: str) -> str | None:
     """
-    Finds Makefile in build_dir or parent directories.
+    Finds Makefile or build.mak in build_dir or parent directories.
 
     Args:
         build_dir (str): Starting directory
 
     Returns:
-        str | None: Path to Makefile or None if not found
+        str | None: Path to Makefile/build.mak or None if not found
     """
     current = os.path.abspath(build_dir)
 
     # Search up to 3 levels up
     for _ in range(3):
-        makefile = os.path.join(current, "Makefile")
-        if os.path.exists(makefile):
-            return makefile
+        # Check for common makefile names (prefer build.mak over Makefile if both exist)
+        for makefile_name in ["build.mak", "Makefile"]:
+            makefile = os.path.join(current, makefile_name)
+            if os.path.exists(makefile):
+                return makefile
 
         parent = os.path.dirname(current)
         if parent == current:  # Reached root
@@ -428,6 +443,92 @@ def _find_makefile(build_dir: str) -> str | None:
         current = parent
 
     return None
+
+
+def _extract_makefile_variables(makefile_path: str) -> dict[str, str]:
+    """
+    Extracts all variable definitions from a Makefile.
+
+    Args:
+        makefile_path (str): Path to Makefile
+
+    Returns:
+        dict[str, str]: Dictionary mapping variable names to their values
+    """
+    variables = {}
+
+    try:
+        with open(makefile_path, 'r') as f:
+            lines = f.readlines()
+
+        i = 0
+        while i < len(lines):
+            line = lines[i].rstrip()
+
+            match = re.match(r'^\s*(?:export\s+)?(\w+)\s*[:+]?=\s*(.*)$', line)
+            if match:
+                var_name = match.group(1)
+                var_value = match.group(2)
+
+                while var_value.endswith('\\') and i + 1 < len(lines):
+                    i += 1
+                    var_value = var_value[:-1] + ' ' + lines[i].strip()
+
+                variables[var_name] = var_value.strip()
+
+            i += 1
+
+        return variables
+
+    except Exception as e:
+        logging.debug(f"DEBUG: Failed to extract Makefile variables: {e}")
+        return {}
+
+
+def _resolve_variable_references(text: str, variables: dict[str, str], max_iterations: int = 10) -> str:
+    """
+    Resolves variable references in text using environment and Makefile variables.
+
+    Handles:
+    - $(VAR) and ${VAR} syntax
+    - Nested variables (e.g., $(PREFIX)/$(SUBDIR))
+    - Recursive expansion (e.g., A=$(B), B=$(C), C=value)
+
+    Args:
+        text (str): Text containing variable references
+        variables (dict): Makefile variables
+        max_iterations (int): Maximum recursion depth to prevent infinite loops
+
+    Returns:
+        str: Text with variables resolved (unresolved vars left as-is)
+    """
+    if not text:
+        return text
+
+    for _ in range(max_iterations):
+        original = text
+
+        var_refs = re.findall(r'\$\((\w+)\)|\$\{(\w+)\}', text)
+
+        if not var_refs:
+            break
+
+        for var_ref in var_refs:
+            var_name = var_ref[0] or var_ref[1]
+
+            value = os.environ.get(var_name)
+
+            if value is None:
+                value = variables.get(var_name)
+
+            if value is not None:
+                text = text.replace(f'$({var_name})', value)
+                text = text.replace(f'${{{var_name}}}', value)
+
+        if text == original:
+            break
+
+    return text
 
 
 def _extract_from_makefile(makefile_path: str) -> list[str]:
@@ -438,17 +539,17 @@ def _extract_from_makefile(makefile_path: str) -> list[str]:
         makefile_path (str): Path to Makefile
 
     Returns:
-        list[str]: List of linking flags
+        list[str]: List of linking flags (with variables resolved where possible)
     """
     all_flags = set()
 
     try:
+        makefile_vars = _extract_makefile_variables(makefile_path)
+
         with open(makefile_path, 'r') as f:
             content = f.read()
 
-        # Look for common linker flag variables
-        # Pattern to match variable assignments (handles multi-line with backslash)
-        var_pattern = r'^(LDFLAGS|LDLIBS|LIBS|LINKFLAGS)\s*[:\+]?=\s*(.*)$'
+        var_pattern = r'^\s*(?:export\s+)?(?:\w+_)?(LDFLAGS|LDLIBS|LIBS|LINKFLAGS)\s*[:\+]?=\s*(.*)$'
 
         lines = content.split('\n')
         i = 0
@@ -470,7 +571,12 @@ def _extract_from_makefile(makefile_path: str) -> list[str]:
 
             i += 1
 
-        return sorted(list(all_flags))
+        resolved_flags = set()
+        for flag in all_flags:
+            resolved_flag = _resolve_variable_references(flag, makefile_vars)
+            resolved_flags.add(resolved_flag)
+
+        return sorted(list(resolved_flags))
 
     except Exception as e:
         logging.error(f"ERROR: Failed to parse Makefile: {e}")
