@@ -170,7 +170,7 @@ def test_nonexistent_build_dir():
     """Test with non-existent build directory"""
     print("Test: nonexistent_build_dir...", end=" ")
     flags = extract_linking_flags("/nonexistent/path", "cmake")
-    assert flags == [], f"Expected empty list, got {flags}"
+    assert flags == "", f"Expected empty string, got {flags}"
     print("PASS")
 
 

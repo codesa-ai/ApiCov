@@ -23,7 +23,7 @@ UPLOAD_URL = "https://callback-373812666155.europe-west2.run.app"
 def upload_data(
     coverage_data: dict,
     header_files: list,
-    linking_flags: list,
+    linking_flags: str,
     api_key: str,
     archive_path: str | None = None,
 ):
@@ -33,7 +33,7 @@ def upload_data(
         "api_key": api_key,
         "coverage": json.dumps(coverage_data),
         "headers": json.dumps(header_files),
-        "linking_flags": json.dumps(linking_flags),
+        "linking_flags": linking_flags,
     }
     logging.debug(f"DEBUG: Uploading data to {UPLOAD_URL}")
     logging.debug(f"DEBUG: Data: {data}")
@@ -269,7 +269,8 @@ def main():
     # Save linking flags to JSON
     linking_flags_file = os.path.join(project_dir, "linking_flags.json")
     logging.debug("DEBUG: Writing linking flags to: %s", linking_flags_file)
-    linking_flags_data = {"linking_flags": linking_flags, "count": len(linking_flags)}
+    flag_count = len(linking_flags.split()) if linking_flags else 0
+    linking_flags_data = {"linking_flags": linking_flags, "count": flag_count}
     with open(linking_flags_file, "w") as fh:
         json.dump(linking_flags_data, fh, indent=2)
 

@@ -138,7 +138,7 @@ def compress_lcov_file(
         raise
 
 
-def extract_linking_flags(build_dir: str, build_system: str) -> list[str]:
+def extract_linking_flags(build_dir: str, build_system: str) -> str:
     """
     Extracts linking flags from the build directory using a hybrid strategy.
 
@@ -152,11 +152,11 @@ def extract_linking_flags(build_dir: str, build_system: str) -> list[str]:
         build_system (str): Build system type ('cmake', 'meson', 'make', 'ninja', 'unknown')
 
     Returns:
-        list[str]: Deduplicated list of linking flags (e.g., ['-lstdc++', '-lpthread', '-L/usr/lib'])
+        str: Space-separated linking flags (e.g., '-lstdc++ -lpthread -L/usr/lib') or empty string
     """
     if not os.path.isdir(build_dir):
         logging.warning(f"Build directory does not exist: {build_dir}")
-        return []
+        return ""
 
     logging.info(f"Extracting linking flags from {build_dir} (build system: {build_system})")
 
@@ -167,7 +167,7 @@ def extract_linking_flags(build_dir: str, build_system: str) -> list[str]:
         flags = _extract_from_compile_commands(compile_commands_path)
         if flags:
             logging.info(f"Extracted {len(flags)} unique linking flags from compile_commands.json")
-            return flags
+            return ' '.join(flags)
 
     # Build system introspection
     if build_system == "cmake":
@@ -175,14 +175,14 @@ def extract_linking_flags(build_dir: str, build_system: str) -> list[str]:
         flags = _extract_from_cmake_cache(build_dir)
         if flags:
             logging.info(f"Extracted {len(flags)} unique linking flags from CMake cache")
-            return flags
+            return ' '.join(flags)
         logging.debug("DEBUG: No flags found in CMakeCache.txt")
     elif build_system == "meson":
         logging.debug("DEBUG: Attempting meson introspection")
         flags = _extract_from_meson_introspection(build_dir)
         if flags:
             logging.info(f"Extracted {len(flags)} unique linking flags from Meson introspection")
-            return flags
+            return ' '.join(flags)
         logging.debug("DEBUG: Meson introspection yielded no flags")
 
     # Direct build file parsing
@@ -207,10 +207,10 @@ def extract_linking_flags(build_dir: str, build_system: str) -> list[str]:
 
     if flags:
         logging.info(f"Extracted {len(flags)} unique linking flags from {build_system} build files")
+        return ' '.join(flags)
     else:
         logging.warning(f"No linking flags found in {build_dir}")
-
-    return flags
+        return ""
 
 
 def _extract_from_compile_commands(compile_commands_path: str) -> list[str]:

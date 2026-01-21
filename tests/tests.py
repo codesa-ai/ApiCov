@@ -76,7 +76,7 @@ def test_upload_data():
     coverage_data = {"test_file.h": {"test_api": {"full_size": 100, "covered_lines": 50}}}
     api_key = "test_api_key"
     header_files = ["test_file.h"]
-    linking_flags = ["-lpthread", "-lstdc++"]
+    linking_flags = "-lpthread -lstdc++"
 
     # Mock response object
     mock_response = mock.Mock()
