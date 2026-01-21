@@ -76,6 +76,7 @@ def test_upload_data():
     coverage_data = {"test_file.h": {"test_api": {"full_size": 100, "covered_lines": 50}}}
     api_key = "test_api_key"
     header_files = ["test_file.h"]
+    linking_flags = ["-lpthread", "-lstdc++"]
 
     # Mock response object
     mock_response = mock.Mock()
@@ -83,7 +84,7 @@ def test_upload_data():
 
     # Test successful upload
     with mock.patch("requests.post", return_value=mock_response) as mock_post:
-        result = upload_data(coverage_data, header_files, api_key)
+        result = upload_data(coverage_data, header_files, linking_flags, api_key)
         assert result is True, "Upload should succeed"
 
         # Verify the request was made with correct parameters
@@ -98,7 +99,7 @@ def test_upload_data():
     with mock.patch(
         "requests.post", side_effect=requests.exceptions.RequestException("Test error")
     ) as mock_post:
-        result = upload_data(coverage_data, header_files, api_key)
+        result = upload_data(coverage_data, header_files, linking_flags, api_key)
         assert result is False, "Upload should fail"
         mock_post.assert_called_once()
 

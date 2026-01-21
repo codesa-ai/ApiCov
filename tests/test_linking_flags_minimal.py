@@ -18,6 +18,8 @@ from modules.Utils import (
     _extract_from_compile_commands,
     _extract_from_cmake_cache,
     _extract_from_makefile,
+    _extract_makefile_variables,
+    _resolve_variable_references,
 )
 
 
@@ -193,6 +195,138 @@ def test_deduplication():
     print("PASS")
 
 
+def test_cmake_fallback_to_makefile():
+    """Test fallback from cmake to Makefile when CMakeCache.txt doesn't exist"""
+    print("Test: cmake_fallback_to_makefile...", end=" ")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        makefile_path = os.path.join(tmpdir, "Makefile")
+        with open(makefile_path, "w") as f:
+            f.write("LDFLAGS = -lpthread -lstdc++\n")
+            f.write("LDLIBS = -lm\n")
+
+        flags = extract_linking_flags(tmpdir, "cmake")
+
+        assert "-lpthread" in flags, f"Expected -lpthread in {flags}"
+        assert "-lstdc++" in flags, f"Expected -lstdc++ in {flags}"
+        assert "-lm" in flags, f"Expected -lm in {flags}"
+    print("PASS")
+
+
+def test_makefile_with_export_and_prefixes():
+    """Test extraction from Makefile with export and variable prefixes (e.g., pjproject)"""
+    print("Test: makefile_with_export_and_prefixes...", end=" ")
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
+        f.write("export APP_LDFLAGS := -L/usr/lib -pthread\n")
+        f.write("export APP_LDLIBS = -lm -lstdc++\n")
+        f.write("  PJ_LDFLAGS = -L/opt/lib\n")
+        f.flush()
+
+        flags = _extract_from_makefile(f.name)
+        os.unlink(f.name)
+
+        assert "-L/usr/lib" in flags, f"Expected -L/usr/lib in {flags}"
+        assert "-pthread" in flags, f"Expected -pthread in {flags}"
+        assert "-lm" in flags, f"Expected -lm in {flags}"
+        assert "-lstdc++" in flags, f"Expected -lstdc++ in {flags}"
+        assert "-L/opt/lib" in flags, f"Expected -L/opt/lib in {flags}"
+    print("PASS")
+
+
+def test_variable_resolution_basic():
+    """Test basic variable resolution"""
+    print("Test: variable_resolution_basic...", end=" ")
+    variables = {
+        "PREFIX": "/usr/local",
+        "LIBDIR": "/opt/libs",
+    }
+
+    test_cases = [
+        ("-L$(PREFIX)/lib", "-L/usr/local/lib"),
+        ("-L${LIBDIR}/foo", "-L/opt/libs/foo"),
+        ("-ltest", "-ltest"),
+    ]
+
+    for input_val, expected in test_cases:
+        result = _resolve_variable_references(input_val, variables)
+        assert result == expected, f"Expected '{expected}', got '{result}' for input '{input_val}'"
+
+    print("PASS")
+
+
+def test_variable_resolution_nested():
+    """Test nested variable resolution"""
+    print("Test: variable_resolution_nested...", end=" ")
+    variables = {
+        "PREFIX": "/usr/local",
+        "LIBDIR": "$(PREFIX)/lib",
+        "MYLIB": "$(LIBDIR)/mylib",
+    }
+
+    result = _resolve_variable_references("-L$(MYLIB)", variables)
+    assert result == "-L/usr/local/lib/mylib", f"Expected '-L/usr/local/lib/mylib', got '{result}'"
+
+    print("PASS")
+
+
+def test_variable_resolution_unresolved():
+    """Test that unresolved variables are left as-is"""
+    print("Test: variable_resolution_unresolved...", end=" ")
+    variables = {
+        "PREFIX": "/usr/local",
+    }
+
+    result = _resolve_variable_references("-L$(PREFIX)/$(UNKNOWN_VAR)/lib", variables)
+    assert result == "-L/usr/local/$(UNKNOWN_VAR)/lib", f"Expected partial resolution, got '{result}'"
+
+    print("PASS")
+
+
+def test_makefile_variable_extraction():
+    """Test extraction of variables from Makefile"""
+    print("Test: makefile_variable_extraction...", end=" ")
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
+        f.write("PREFIX = /usr/local\n")
+        f.write("export LIBDIR := $(PREFIX)/lib\n")
+        f.write("CFLAGS = -O2\n")
+        f.write("  MYVAR = value\n")
+        f.flush()
+
+        variables = _extract_makefile_variables(f.name)
+        os.unlink(f.name)
+
+        assert "PREFIX" in variables, f"Expected PREFIX in {variables}"
+        assert variables["PREFIX"] == "/usr/local", f"Wrong value for PREFIX: {variables['PREFIX']}"
+        assert "LIBDIR" in variables, f"Expected LIBDIR in {variables}"
+        assert variables["LIBDIR"] == "$(PREFIX)/lib", f"Wrong value for LIBDIR: {variables['LIBDIR']}"
+        assert "MYVAR" in variables, f"Expected MYVAR in {variables}"
+
+    print("PASS")
+
+
+def test_makefile_extraction_with_variables():
+    """Test extraction from Makefile with variable resolution"""
+    print("Test: makefile_extraction_with_variables...", end=" ")
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
+        f.write("PREFIX = /usr/local\n")
+        f.write("LIBDIR = $(PREFIX)/lib\n")
+        f.write("LDFLAGS = -L$(LIBDIR) -lpthread\n")
+        f.write("LDLIBS = -L$(PREFIX)/other -lm\n")
+        f.flush()
+
+        flags = _extract_from_makefile(f.name)
+        os.unlink(f.name)
+
+        assert "-L/usr/local/lib" in flags, f"Expected -L/usr/local/lib in {flags}"
+        assert "-L/usr/local/other" in flags, f"Expected -L/usr/local/other in {flags}"
+        assert "-lpthread" in flags, f"Expected -lpthread in {flags}"
+        assert "-lm" in flags, f"Expected -lm in {flags}"
+
+        assert "-L$(LIBDIR)" not in flags, f"Unresolved variable found in {flags}"
+        assert "-L$(PREFIX)/lib" not in flags, f"Unresolved variable found in {flags}"
+
+    print("PASS")
+
+
 def main():
     print("=" * 60)
     print("Running Linking Flags Extraction Tests")
@@ -211,6 +345,13 @@ def main():
         test_end_to_end_with_cmake_cache,
         test_nonexistent_build_dir,
         test_deduplication,
+        test_cmake_fallback_to_makefile,
+        test_makefile_with_export_and_prefixes,
+        test_variable_resolution_basic,
+        test_variable_resolution_nested,
+        test_variable_resolution_unresolved,
+        test_makefile_variable_extraction,
+        test_makefile_extraction_with_variables,
     ]
 
     passed = 0
