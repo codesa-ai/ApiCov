@@ -1,3 +1,4 @@
+import glob
 import json
 import os
 import re
@@ -138,7 +139,89 @@ def compress_lcov_file(
         raise
 
 
-def extract_linking_flags(build_dir: str, build_system: str) -> str:
+def _make_paths_relative(flags: list[str], project_dir: str) -> list[str]:
+    """
+    Convert project-internal absolute paths to relative paths, filter out system paths,
+    and remove library flags for libraries that don't exist.
+
+    Only keeps:
+    - Project-internal -L paths (converted to relative paths)
+    - -l library flags for libraries that actually exist in the -L paths
+    - Other linker flags like -Wl,... and -pthread
+
+    Args:
+        flags (list[str]): List of linking flags
+        project_dir (str): Absolute path to project root directory
+
+    Returns:
+        list[str]: Filtered and processed flags
+    """
+    project_dir = os.path.abspath(project_dir)
+
+    # First pass: collect project-internal library paths
+    lib_paths = []
+    for flag in flags:
+        if flag.startswith('-L'):
+            path = flag[2:]
+            abs_path = os.path.abspath(path)
+            try:
+                rel_path = os.path.relpath(abs_path, project_dir)
+                if not rel_path.startswith('..'):
+                    full_path = os.path.join(project_dir, rel_path)
+                    if os.path.isdir(full_path):
+                        lib_paths.append((rel_path, full_path))
+            except ValueError:
+                pass
+
+    # Second pass: build result with validation
+    result = []
+    for flag in flags:
+        if flag.startswith('-L'):
+            path = flag[2:]
+            abs_path = os.path.abspath(path)
+            try:
+                rel_path = os.path.relpath(abs_path, project_dir)
+                if not rel_path.startswith('..'):
+                    full_path = os.path.join(project_dir, rel_path)
+                    if os.path.isdir(full_path):
+                        result.append(f'-L{rel_path}')
+            except ValueError:
+                pass
+        elif flag.startswith('-l'):
+            lib_name = flag[2:]
+
+            # System libraries - keep without validation
+            system_libs = {'m', 'pthread', 'dl', 'rt', 'c', 'stdc++', 'ssl', 'crypto', 'z', 'bz2'}
+            if lib_name in system_libs:
+                result.append(flag)
+                continue
+
+            # Project libraries - validate existence in project lib paths
+            lib_exists = False
+            for rel_path, full_path in lib_paths:
+                for ext in ['.a', '.so', '.dylib']:
+                    lib_file = os.path.join(full_path, f'lib{lib_name}{ext}')
+                    if os.path.exists(lib_file):
+                        lib_exists = True
+                        break
+                    if glob.glob(os.path.join(full_path, f'lib{lib_name}.so*')):
+                        lib_exists = True
+                        break
+                if lib_exists:
+                    break
+
+            if lib_exists:
+                result.append(flag)
+            else:
+                logging.debug(f"DEBUG: Filtering out -l{lib_name} - library not found in project paths")
+        else:
+            # Keep other flags (like -pthread, -Wl,...)
+            result.append(flag)
+
+    return result
+
+
+def extract_linking_flags(build_dir: str, build_system: str, project_dir: str = None) -> str:
     """
     Extracts linking flags from the build directory using a hybrid strategy.
 
@@ -150,6 +233,7 @@ def extract_linking_flags(build_dir: str, build_system: str) -> str:
     Args:
         build_dir (str): Path to the build directory
         build_system (str): Build system type ('cmake', 'meson', 'make', 'ninja', 'unknown')
+        project_dir (str): Path to project root directory (for making paths relative)
 
     Returns:
         str: Space-separated linking flags (e.g., '-lstdc++ -lpthread -L/usr/lib') or empty string
@@ -157,6 +241,10 @@ def extract_linking_flags(build_dir: str, build_system: str) -> str:
     if not os.path.isdir(build_dir):
         logging.warning(f"Build directory does not exist: {build_dir}")
         return ""
+
+    # Default project_dir to build_dir if not provided
+    if project_dir is None:
+        project_dir = build_dir
 
     logging.info(f"Extracting linking flags from {build_dir} (build system: {build_system})")
 
@@ -166,6 +254,7 @@ def extract_linking_flags(build_dir: str, build_system: str) -> str:
         logging.debug("DEBUG: Found compile_commands.json, attempting to extract flags")
         flags = _extract_from_compile_commands(compile_commands_path)
         if flags:
+            flags = _make_paths_relative(flags, project_dir)
             logging.info(f"Extracted {len(flags)} unique linking flags from compile_commands.json")
             return ' '.join(flags)
 
@@ -174,6 +263,7 @@ def extract_linking_flags(build_dir: str, build_system: str) -> str:
         logging.debug("DEBUG: Attempting to extract from CMakeCache.txt")
         flags = _extract_from_cmake_cache(build_dir)
         if flags:
+            flags = _make_paths_relative(flags, project_dir)
             logging.info(f"Extracted {len(flags)} unique linking flags from CMake cache")
             return ' '.join(flags)
         logging.debug("DEBUG: No flags found in CMakeCache.txt")
@@ -181,6 +271,7 @@ def extract_linking_flags(build_dir: str, build_system: str) -> str:
         logging.debug("DEBUG: Attempting meson introspection")
         flags = _extract_from_meson_introspection(build_dir)
         if flags:
+            flags = _make_paths_relative(flags, project_dir)
             logging.info(f"Extracted {len(flags)} unique linking flags from Meson introspection")
             return ' '.join(flags)
         logging.debug("DEBUG: Meson introspection yielded no flags")
@@ -206,6 +297,7 @@ def extract_linking_flags(build_dir: str, build_system: str) -> str:
                 logging.info(f"Extracted {len(flags)} unique linking flags from Makefile (fallback)")
 
     if flags:
+        flags = _make_paths_relative(flags, project_dir)
         logging.info(f"Extracted {len(flags)} unique linking flags from {build_system} build files")
         return ' '.join(flags)
     else:

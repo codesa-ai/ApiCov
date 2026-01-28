@@ -20,6 +20,7 @@ from modules.Utils import (
     _extract_from_makefile,
     _extract_makefile_variables,
     _resolve_variable_references,
+    _make_paths_relative,
 )
 
 
@@ -327,6 +328,199 @@ def test_makefile_extraction_with_variables():
     print("PASS")
 
 
+def test_make_paths_relative_converts_project_paths():
+    """Test that project-internal absolute paths are converted to relative"""
+    print("Test: make_paths_relative_converts_project_paths...", end=" ")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Create lib directories with actual libraries
+        lib_dir = os.path.join(tmpdir, "pjlib", "lib")
+        os.makedirs(lib_dir)
+        # Create a dummy library file
+        with open(os.path.join(lib_dir, "libpj.a"), "w") as f:
+            f.write("")
+
+        flags = [
+            f"-L{lib_dir}",
+            "-lpj",
+            "-lm",
+        ]
+
+        result = _make_paths_relative(flags, tmpdir)
+
+        assert "-Lpjlib/lib" in result, f"Expected -Lpjlib/lib in {result}"
+        assert "-lpj" in result, f"Expected -lpj in {result}"
+        assert "-lm" in result, f"Expected -lm in {result}"
+
+    print("PASS")
+
+
+def test_make_paths_relative_filters_system_paths():
+    """Test that system -L paths are filtered out"""
+    print("Test: make_paths_relative_filters_system_paths...", end=" ")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        flags = [
+            "-L/usr/lib",
+            "-L/opt/homebrew/lib",
+            "-L/usr/local/lib",
+            "-lm",
+            "-lpthread",
+        ]
+
+        result = _make_paths_relative(flags, tmpdir)
+
+        assert "-L/usr/lib" not in result, f"System path should be filtered: {result}"
+        assert "-L/opt/homebrew/lib" not in result, f"System path should be filtered: {result}"
+        assert "-L/usr/local/lib" not in result, f"System path should be filtered: {result}"
+        # System libraries should be kept
+        assert "-lm" in result, f"Expected -lm in {result}"
+        assert "-lpthread" in result, f"Expected -lpthread in {result}"
+
+    print("PASS")
+
+
+def test_make_paths_relative_filters_nonexistent_libs():
+    """Test that libraries not found in project paths are filtered out"""
+    print("Test: make_paths_relative_filters_nonexistent_libs...", end=" ")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Create lib directory with only one library
+        lib_dir = os.path.join(tmpdir, "lib")
+        os.makedirs(lib_dir)
+        with open(os.path.join(lib_dir, "libexists.a"), "w") as f:
+            f.write("")
+
+        flags = [
+            f"-L{lib_dir}",
+            "-lexists",
+            "-lnonexistent",
+            "-lm",  # system lib, should be kept
+        ]
+
+        result = _make_paths_relative(flags, tmpdir)
+
+        assert "-lexists" in result, f"Expected -lexists in {result}"
+        assert "-lnonexistent" not in result, f"Nonexistent lib should be filtered: {result}"
+        assert "-lm" in result, f"System lib should be kept: {result}"
+
+    print("PASS")
+
+
+def test_make_paths_relative_keeps_system_libs():
+    """Test that known system libraries are always kept"""
+    print("Test: make_paths_relative_keeps_system_libs...", end=" ")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        flags = [
+            "-lm",
+            "-lpthread",
+            "-ldl",
+            "-lrt",
+            "-lc",
+            "-lstdc++",
+            "-lssl",
+            "-lcrypto",
+            "-lz",
+            "-lbz2",
+        ]
+
+        result = _make_paths_relative(flags, tmpdir)
+
+        for flag in flags:
+            assert flag in result, f"System lib {flag} should be kept in {result}"
+
+    print("PASS")
+
+
+def test_make_paths_relative_keeps_other_flags():
+    """Test that non-path, non-library flags are preserved"""
+    print("Test: make_paths_relative_keeps_other_flags...", end=" ")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        flags = [
+            "-pthread",
+            "-Wl,--as-needed",
+            "-Wl,-rpath,/opt/lib",
+            "-rdynamic",
+        ]
+
+        result = _make_paths_relative(flags, tmpdir)
+
+        for flag in flags:
+            assert flag in result, f"Flag {flag} should be kept in {result}"
+
+    print("PASS")
+
+
+def test_make_paths_relative_handles_shared_libs():
+    """Test that shared libraries (.so, .dylib) are detected"""
+    print("Test: make_paths_relative_handles_shared_libs...", end=" ")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        lib_dir = os.path.join(tmpdir, "lib")
+        os.makedirs(lib_dir)
+        # Create shared library files
+        with open(os.path.join(lib_dir, "libshared.so"), "w") as f:
+            f.write("")
+        with open(os.path.join(lib_dir, "libmac.dylib"), "w") as f:
+            f.write("")
+
+        flags = [
+            f"-L{lib_dir}",
+            "-lshared",
+            "-lmac",
+        ]
+
+        result = _make_paths_relative(flags, tmpdir)
+
+        assert "-lshared" in result, f"Expected -lshared in {result}"
+        assert "-lmac" in result, f"Expected -lmac in {result}"
+
+    print("PASS")
+
+
+def test_make_paths_relative_skips_nonexistent_dirs():
+    """Test that -L paths to non-existent directories are filtered out"""
+    print("Test: make_paths_relative_skips_nonexistent_dirs...", end=" ")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        flags = [
+            f"-L{tmpdir}/nonexistent/lib",
+            f"-L{tmpdir}/install/lib",
+            "-lm",
+        ]
+
+        result = _make_paths_relative(flags, tmpdir)
+
+        assert "-Lnonexistent/lib" not in result, f"Nonexistent dir should be filtered: {result}"
+        assert "-Linstall/lib" not in result, f"Nonexistent dir should be filtered: {result}"
+        assert "-lm" in result, f"System lib should be kept: {result}"
+
+    print("PASS")
+
+
+def test_end_to_end_with_library_validation():
+    """Test end-to-end extraction with library existence validation"""
+    print("Test: end_to_end_with_library_validation...", end=" ")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Create lib directory structure
+        lib_dir = os.path.join(tmpdir, "mylib", "lib")
+        os.makedirs(lib_dir)
+        with open(os.path.join(lib_dir, "libmylib.a"), "w") as f:
+            f.write("")
+
+        # Create Makefile with both existing and non-existing libs
+        makefile_path = os.path.join(tmpdir, "Makefile")
+        with open(makefile_path, "w") as f:
+            f.write(f"LDFLAGS = -L{lib_dir} -L/usr/lib\n")
+            f.write("LDLIBS = -lmylib -lnonexistent -lm -lpthread\n")
+
+        flags = extract_linking_flags(tmpdir, "make", tmpdir)
+
+        assert "-Lmylib/lib" in flags, f"Expected -Lmylib/lib in {flags}"
+        assert "-L/usr/lib" not in flags, f"System path should be filtered: {flags}"
+        assert "-lmylib" in flags, f"Expected -lmylib in {flags}"
+        assert "-lnonexistent" not in flags, f"Nonexistent lib should be filtered: {flags}"
+        assert "-lm" in flags, f"System lib should be kept: {flags}"
+        assert "-lpthread" in flags, f"System lib should be kept: {flags}"
+
+    print("PASS")
+
+
 def main():
     print("=" * 60)
     print("Running Linking Flags Extraction Tests")
@@ -352,6 +546,15 @@ def main():
         test_variable_resolution_unresolved,
         test_makefile_variable_extraction,
         test_makefile_extraction_with_variables,
+        # New tests for _make_paths_relative
+        test_make_paths_relative_converts_project_paths,
+        test_make_paths_relative_filters_system_paths,
+        test_make_paths_relative_filters_nonexistent_libs,
+        test_make_paths_relative_keeps_system_libs,
+        test_make_paths_relative_keeps_other_flags,
+        test_make_paths_relative_handles_shared_libs,
+        test_make_paths_relative_skips_nonexistent_dirs,
+        test_end_to_end_with_library_validation,
     ]
 
     passed = 0
