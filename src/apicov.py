@@ -263,7 +263,7 @@ def main():
     build_system = identify_build_system(project_dir)
     logging.info(f"Detected build system: {build_system}")
 
-    linking_flags = extract_linking_flags(build_dir, build_system)
+    linking_flags = extract_linking_flags(build_dir, build_system, project_dir)
     logging.info(f"Linking flags found: {linking_flags}")
 
     # Save linking flags to JSON

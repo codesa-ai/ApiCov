@@ -1,3 +1,4 @@
+import glob
 import json
 import os
 import re
@@ -138,7 +139,89 @@ def compress_lcov_file(
         raise
 
 
-def extract_linking_flags(build_dir: str, build_system: str) -> str:
+def _make_paths_relative(flags: list[str], project_dir: str) -> list[str]:
+    """
+    Convert project-internal absolute paths to relative paths, filter out system paths,
+    and remove library flags for libraries that don't exist.
+
+    Only keeps:
+    - Project-internal -L paths (converted to relative paths)
+    - -l library flags for libraries that actually exist in the -L paths
+    - Other linker flags like -Wl,... and -pthread
+
+    Args:
+        flags (list[str]): List of linking flags
+        project_dir (str): Absolute path to project root directory
+
+    Returns:
+        list[str]: Filtered and processed flags
+    """
+    project_dir = os.path.abspath(project_dir)
+
+    # First pass: collect project-internal library paths
+    lib_paths = []
+    for flag in flags:
+        if flag.startswith('-L'):
+            path = flag[2:]
+            abs_path = os.path.abspath(path)
+            try:
+                rel_path = os.path.relpath(abs_path, project_dir)
+                if not rel_path.startswith('..'):
+                    full_path = os.path.join(project_dir, rel_path)
+                    if os.path.isdir(full_path):
+                        lib_paths.append((rel_path, full_path))
+            except ValueError:
+                pass
+
+    # Second pass: build result with validation
+    result = []
+    for flag in flags:
+        if flag.startswith('-L'):
+            path = flag[2:]
+            abs_path = os.path.abspath(path)
+            try:
+                rel_path = os.path.relpath(abs_path, project_dir)
+                if not rel_path.startswith('..'):
+                    full_path = os.path.join(project_dir, rel_path)
+                    if os.path.isdir(full_path):
+                        result.append(f'-L{rel_path}')
+            except ValueError:
+                pass
+        elif flag.startswith('-l'):
+            lib_name = flag[2:]
+
+            # System libraries - keep without validation
+            system_libs = {'m', 'pthread', 'dl', 'rt', 'c', 'stdc++', 'ssl', 'crypto', 'z', 'bz2'}
+            if lib_name in system_libs:
+                result.append(flag)
+                continue
+
+            # Project libraries - validate existence in project lib paths
+            lib_exists = False
+            for rel_path, full_path in lib_paths:
+                for ext in ['.a', '.so', '.dylib']:
+                    lib_file = os.path.join(full_path, f'lib{lib_name}{ext}')
+                    if os.path.exists(lib_file):
+                        lib_exists = True
+                        break
+                    if glob.glob(os.path.join(full_path, f'lib{lib_name}.so*')):
+                        lib_exists = True
+                        break
+                if lib_exists:
+                    break
+
+            if lib_exists:
+                result.append(flag)
+            else:
+                logging.debug(f"DEBUG: Filtering out -l{lib_name} - library not found in project paths")
+        else:
+            # Keep other flags (like -pthread, -Wl,...)
+            result.append(flag)
+
+    return result
+
+
+def extract_linking_flags(build_dir: str, build_system: str, project_dir: str = None) -> str:
     """
     Extracts linking flags from the build directory using a hybrid strategy.
 
@@ -150,6 +233,7 @@ def extract_linking_flags(build_dir: str, build_system: str) -> str:
     Args:
         build_dir (str): Path to the build directory
         build_system (str): Build system type ('cmake', 'meson', 'make', 'ninja', 'unknown')
+        project_dir (str): Path to project root directory (for making paths relative)
 
     Returns:
         str: Space-separated linking flags (e.g., '-lstdc++ -lpthread -L/usr/lib') or empty string
@@ -158,59 +242,54 @@ def extract_linking_flags(build_dir: str, build_system: str) -> str:
         logging.warning(f"Build directory does not exist: {build_dir}")
         return ""
 
+    # Default project_dir to build_dir if not provided
+    if project_dir is None:
+        project_dir = build_dir
+
     logging.info(f"Extracting linking flags from {build_dir} (build system: {build_system})")
 
-    # Try compile_commands.json
-    compile_commands_path = os.path.join(build_dir, "compile_commands.json")
-    if os.path.exists(compile_commands_path):
-        logging.debug("DEBUG: Found compile_commands.json, attempting to extract flags")
-        flags = _extract_from_compile_commands(compile_commands_path)
-        if flags:
-            logging.info(f"Extracted {len(flags)} unique linking flags from compile_commands.json")
-            return ' '.join(flags)
+    flags = []
 
-    # Build system introspection
+    # CMake: parse link.txt files in CMakeFiles/*/
     if build_system == "cmake":
-        logging.debug("DEBUG: Attempting to extract from CMakeCache.txt")
-        flags = _extract_from_cmake_cache(build_dir)
+        logging.debug("DEBUG: Attempting to extract from CMake link.txt files")
+        flags = _extract_from_cmake_link_txt(build_dir)
         if flags:
-            logging.info(f"Extracted {len(flags)} unique linking flags from CMake cache")
+            flags = _make_paths_relative(flags, project_dir)
+            logging.info(f"Extracted {len(flags)} unique linking flags from CMake link.txt")
             return ' '.join(flags)
-        logging.debug("DEBUG: No flags found in CMakeCache.txt")
+        logging.debug("DEBUG: No flags found in CMake link.txt files")
+
+    # Meson: use introspection API
     elif build_system == "meson":
         logging.debug("DEBUG: Attempting meson introspection")
         flags = _extract_from_meson_introspection(build_dir)
         if flags:
+            flags = _make_paths_relative(flags, project_dir)
             logging.info(f"Extracted {len(flags)} unique linking flags from Meson introspection")
             return ' '.join(flags)
         logging.debug("DEBUG: Meson introspection yielded no flags")
 
-    # Direct build file parsing
-    if build_system == "make":
-        makefile_path = _find_makefile(build_dir)
-        if makefile_path:
-            flags = _extract_from_makefile(makefile_path)
-        else:
-            flags = []
-    else:
-        flags = []
+    # Make/Autotools: use make -p for evaluated variables
+    makefile_path = _find_makefile(build_dir)
+    if makefile_path:
+        logging.debug("DEBUG: Found Makefile, trying make -p for evaluated variables")
+        flags = _extract_from_make_database(build_dir)
+        if flags:
+            flags = _make_paths_relative(flags, project_dir)
+            logging.info(f"Extracted {len(flags)} unique linking flags from make -p")
+            return ' '.join(flags)
 
-    # Fallback: If no flags found yet, try Makefile extraction regardless of detected build system
-    # This handles cases where projects have multiple build systems (e.g., both CMakeLists.txt and Makefile)
-    if not flags and build_system != "make":
-        logging.debug("DEBUG: Primary extraction failed, trying Makefile as fallback")
-        makefile_path = _find_makefile(build_dir)
-        if makefile_path:
-            flags = _extract_from_makefile(makefile_path)
-            if flags:
-                logging.info(f"Extracted {len(flags)} unique linking flags from Makefile (fallback)")
+        # Fall back to regex parsing if make -p fails
+        logging.debug("DEBUG: make -p failed, falling back to regex parsing")
+        flags = _extract_from_makefile(makefile_path)
+        if flags:
+            flags = _make_paths_relative(flags, project_dir)
+            logging.info(f"Extracted {len(flags)} unique linking flags from Makefile regex")
+            return ' '.join(flags)
 
-    if flags:
-        logging.info(f"Extracted {len(flags)} unique linking flags from {build_system} build files")
-        return ' '.join(flags)
-    else:
-        logging.warning(f"No linking flags found in {build_dir}")
-        return ""
+    logging.warning(f"No linking flags found in {build_dir}")
+    return ""
 
 
 def _extract_from_compile_commands(compile_commands_path: str) -> list[str]:
@@ -307,9 +386,80 @@ def _parse_linking_flags_from_command(command: str) -> list[str]:
     return flags
 
 
-def _extract_from_cmake_cache(build_dir: str) -> list[str]:
+def _extract_from_make_database(build_dir: str) -> list[str]:
     """
-    Extracts linking flags from CMakeCache.txt.
+    Extracts linking flags using 'make -p' to get fully evaluated variables.
+
+    This is more reliable than regex parsing because it:
+    - Evaluates all conditionals
+    - Resolves all variable references
+    - Includes pjproject core libraries
+
+    Args:
+        build_dir (str): Path to build directory with Makefile
+
+    Returns:
+        list[str]: List of linking flags
+    """
+    all_flags = set()
+
+    try:
+        result = subprocess.run(
+            ['make', '-p', '-n'],  # -p prints database, -n prevents execution
+            cwd=build_dir,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+
+        if result.returncode != 0:
+            logging.debug(f"DEBUG: make -p failed: {result.stderr}")
+            return []
+
+        # Parse the output for linking-related variables
+        # Look for any variable ending with common linking suffixes
+        linking_suffixes = ('_LDFLAGS', '_LDLIBS', '_LIBS', '_LINKFLAGS',
+                            'LDFLAGS', 'LDLIBS', 'LIBS', 'LINKFLAGS')
+
+        for line in result.stdout.split('\n'):
+            # Match variable assignments like "VAR = value" or "VAR := value"
+            # Check if line contains an assignment
+            if ' = ' not in line and ' := ' not in line:
+                continue
+
+            # Extract variable name (before = or :=)
+            if ' := ' in line:
+                var_name = line.split(' := ', 1)[0].strip()
+                value = line.split(' := ', 1)[1].strip()
+            else:
+                var_name = line.split(' = ', 1)[0].strip()
+                value = line.split(' = ', 1)[1].strip()
+
+            # Check if variable name matches linking patterns
+            if any(var_name.endswith(suffix) or var_name == suffix.lstrip('_')
+                   for suffix in linking_suffixes):
+                flags = _parse_linking_flags_from_command(value)
+                all_flags.update(flags)
+
+        return sorted(list(all_flags))
+
+    except subprocess.TimeoutExpired:
+        logging.warning("WARNING: make -p timed out")
+        return []
+    except FileNotFoundError:
+        logging.debug("DEBUG: make command not found")
+        return []
+    except Exception as e:
+        logging.error(f"ERROR: Failed to run make -p: {e}")
+        return []
+
+
+def _extract_from_cmake_link_txt(build_dir: str) -> list[str]:
+    """
+    Extracts linking flags from CMake's link.txt files.
+
+    CMake generates link.txt files in CMakeFiles/<target>.dir/ containing
+    the full linker command for each target.
 
     Args:
         build_dir (str): Path to CMake build directory
@@ -317,37 +467,32 @@ def _extract_from_cmake_cache(build_dir: str) -> list[str]:
     Returns:
         list[str]: List of linking flags
     """
-    cache_path = os.path.join(build_dir, "CMakeCache.txt")
-    if not os.path.exists(cache_path):
-        logging.debug("DEBUG: CMakeCache.txt not found")
-        return []
-
     all_flags = set()
 
-    try:
-        with open(cache_path, 'r') as f:
-            for line in f:
-                line = line.strip()
+    # Find all link.txt files in CMakeFiles subdirectories
+    cmake_files_dir = os.path.join(build_dir, "CMakeFiles")
+    if not os.path.isdir(cmake_files_dir):
+        logging.debug("DEBUG: CMakeFiles directory not found")
+        return []
 
-                # Look for linker flag variables
-                if any(keyword in line for keyword in [
-                    'CMAKE_EXE_LINKER_FLAGS',
-                    'CMAKE_SHARED_LINKER_FLAGS',
-                    'CMAKE_MODULE_LINKER_FLAGS',
-                    'CMAKE_STATIC_LINKER_FLAGS',
-                    'LINK_LIBRARIES',
-                    'INTERFACE_LINK_LIBRARIES'
-                ]):
-                    # Extract value after '='
-                    if '=' in line and not line.startswith('//'):
-                        value = line.split('=', 1)[1]
-                        flags = _parse_linking_flags_from_command(value)
-                        all_flags.update(flags)
+    try:
+        for root, dirs, files in os.walk(cmake_files_dir):
+            for filename in files:
+                if filename == "link.txt":
+                    link_txt_path = os.path.join(root, filename)
+                    logging.debug(f"DEBUG: Found link.txt: {link_txt_path}")
+
+                    with open(link_txt_path, 'r') as f:
+                        content = f.read().strip()
+
+                    # link.txt contains the full linker command
+                    flags = _parse_linking_flags_from_command(content)
+                    all_flags.update(flags)
 
         return sorted(list(all_flags))
 
     except Exception as e:
-        logging.error(f"ERROR: Failed to parse CMakeCache.txt: {e}")
+        logging.error(f"ERROR: Failed to parse CMake link.txt files: {e}")
         return []
 
 
