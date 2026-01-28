@@ -15,8 +15,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from modules.Utils import (
     extract_linking_flags,
     _parse_linking_flags_from_command,
-    _extract_from_compile_commands,
-    _extract_from_cmake_cache,
+    _extract_from_cmake_link_txt,
     _extract_from_makefile,
     _extract_makefile_variables,
     _resolve_variable_references,
@@ -55,44 +54,49 @@ def test_parse_space_separated():
     print("PASS")
 
 
-def test_compile_commands_extraction():
-    """Test extraction from compile_commands.json"""
-    print("Test: compile_commands_extraction...", end=" ")
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-        compile_commands = [
-            {"command": "gcc -o test.o test.c -lstdc++ -lpthread", "file": "test.c"},
-            {"command": "g++ -o main.o main.cpp -lm -L/opt/lib", "file": "main.cpp"},
-        ]
-        json.dump(compile_commands, f)
-        f.flush()
+def test_cmake_link_txt_extraction():
+    """Test extraction from CMake link.txt files"""
+    print("Test: cmake_link_txt_extraction...", end=" ")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Create CMakeFiles/target.dir/link.txt structure
+        target_dir = os.path.join(tmpdir, "CMakeFiles", "myapp.dir")
+        os.makedirs(target_dir)
+        link_txt = os.path.join(target_dir, "link.txt")
 
-        flags = _extract_from_compile_commands(f.name)
-        os.unlink(f.name)
+        with open(link_txt, "w") as f:
+            f.write("/usr/bin/cc -o myapp obj1.o obj2.o -lssl -lcrypto -lpthread -L/usr/lib\n")
 
-        assert "-lstdc++" in flags, f"Expected -lstdc++ in {flags}"
+        flags = _extract_from_cmake_link_txt(tmpdir)
+
+        assert "-lssl" in flags, f"Expected -lssl in {flags}"
+        assert "-lcrypto" in flags, f"Expected -lcrypto in {flags}"
         assert "-lpthread" in flags, f"Expected -lpthread in {flags}"
-        assert "-lm" in flags, f"Expected -lm in {flags}"
-        assert "-L/opt/lib" in flags, f"Expected -L/opt/lib in {flags}"
+        assert "-L/usr/lib" in flags, f"Expected -L/usr/lib in {flags}"
     print("PASS")
 
 
-def test_cmake_cache_extraction():
-    """Test extraction from CMakeCache.txt"""
-    print("Test: cmake_cache_extraction...", end=" ")
+def test_cmake_link_txt_multiple_targets():
+    """Test extraction from multiple CMake link.txt files"""
+    print("Test: cmake_link_txt_multiple_targets...", end=" ")
     with tempfile.TemporaryDirectory() as tmpdir:
-        cache_file = os.path.join(tmpdir, "CMakeCache.txt")
+        # Create multiple targets
+        for target in ["app1", "app2"]:
+            target_dir = os.path.join(tmpdir, "CMakeFiles", f"{target}.dir")
+            os.makedirs(target_dir)
+            link_txt = os.path.join(target_dir, "link.txt")
+            with open(link_txt, "w") as f:
+                if target == "app1":
+                    f.write("/usr/bin/cc -o app1 obj.o -lssl -lm\n")
+                else:
+                    f.write("/usr/bin/cc -o app2 obj.o -lcrypto -lpthread\n")
 
-        with open(cache_file, "w") as f:
-            f.write("# CMake cache\n")
-            f.write("CMAKE_EXE_LINKER_FLAGS:STRING=-lpthread -lstdc++\n")
-            f.write("CMAKE_SHARED_LINKER_FLAGS:STRING=-L/usr/lib -lm\n")
+        flags = _extract_from_cmake_link_txt(tmpdir)
 
-        flags = _extract_from_cmake_cache(tmpdir)
-
-        assert "-lpthread" in flags, f"Expected -lpthread in {flags}"
-        assert "-lstdc++" in flags, f"Expected -lstdc++ in {flags}"
+        # Should have flags from both targets
+        assert "-lssl" in flags, f"Expected -lssl in {flags}"
         assert "-lm" in flags, f"Expected -lm in {flags}"
-        assert "-L/usr/lib" in flags, f"Expected -L/usr/lib in {flags}"
+        assert "-lcrypto" in flags, f"Expected -lcrypto in {flags}"
+        assert "-lpthread" in flags, f"Expected -lpthread in {flags}"
     print("PASS")
 
 
@@ -134,35 +138,21 @@ def test_makefile_multiline():
     print("PASS")
 
 
-def test_end_to_end_with_compile_commands():
-    """Test end-to-end extraction with compile_commands.json"""
-    print("Test: end_to_end_with_compile_commands...", end=" ")
+def test_end_to_end_cmake_link_txt():
+    """Test end-to-end extraction with CMake link.txt"""
+    print("Test: end_to_end_cmake_link_txt...", end=" ")
     with tempfile.TemporaryDirectory() as tmpdir:
-        compile_commands_file = os.path.join(tmpdir, "compile_commands.json")
+        # Create CMakeFiles/target.dir/link.txt
+        target_dir = os.path.join(tmpdir, "CMakeFiles", "myapp.dir")
+        os.makedirs(target_dir)
+        link_txt = os.path.join(target_dir, "link.txt")
 
-        with open(compile_commands_file, "w") as f:
-            json.dump(
-                [{"command": "gcc test.c -lstdc++ -lpthread", "file": "test.c"}], f
-            )
+        with open(link_txt, "w") as f:
+            f.write("/usr/bin/cc -o myapp obj.o -lstdc++ -lpthread\n")
 
-        flags = extract_linking_flags(tmpdir, "cmake")
+        flags = extract_linking_flags(tmpdir, "cmake", tmpdir)
 
         assert "-lstdc++" in flags, f"Expected -lstdc++ in {flags}"
-        assert "-lpthread" in flags, f"Expected -lpthread in {flags}"
-    print("PASS")
-
-
-def test_end_to_end_with_cmake_cache():
-    """Test end-to-end extraction with CMakeCache.txt"""
-    print("Test: end_to_end_with_cmake_cache...", end=" ")
-    with tempfile.TemporaryDirectory() as tmpdir:
-        cache_file = os.path.join(tmpdir, "CMakeCache.txt")
-
-        with open(cache_file, "w") as f:
-            f.write("CMAKE_EXE_LINKER_FLAGS:STRING=-lpthread\n")
-
-        flags = extract_linking_flags(tmpdir, "cmake")
-
         assert "-lpthread" in flags, f"Expected -lpthread in {flags}"
     print("PASS")
 
@@ -178,20 +168,24 @@ def test_nonexistent_build_dir():
 def test_deduplication():
     """Test that duplicate flags are deduplicated"""
     print("Test: deduplication...", end=" ")
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-        compile_commands = [
-            {"command": "gcc test1.c -lstdc++ -lpthread", "file": "test1.c"},
-            {"command": "gcc test2.c -lstdc++ -lm", "file": "test2.c"},
-        ]
-        json.dump(compile_commands, f)
-        f.flush()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Create multiple CMake targets with overlapping flags
+        for target in ["app1", "app2", "app3"]:
+            target_dir = os.path.join(tmpdir, "CMakeFiles", f"{target}.dir")
+            os.makedirs(target_dir)
+            link_txt = os.path.join(target_dir, "link.txt")
+            with open(link_txt, "w") as f:
+                # All targets have -lstdc++, creating duplicates
+                f.write(f"/usr/bin/cc -o {target} obj.o -lstdc++ -lpthread -lm\n")
 
-        flags = _extract_from_compile_commands(f.name)
-        os.unlink(f.name)
+        flags = _extract_from_cmake_link_txt(tmpdir)
 
         # Count occurrences of -lstdc++
         assert flags.count("-lstdc++") == 1, (
             f"Expected 1 occurrence of -lstdc++, got {flags.count('-lstdc++')}"
+        )
+        assert flags.count("-lpthread") == 1, (
+            f"Expected 1 occurrence of -lpthread, got {flags.count('-lpthread')}"
         )
     print("PASS")
 
@@ -531,12 +525,13 @@ def main():
         test_parse_basic_flags,
         test_parse_wl_flags,
         test_parse_space_separated,
-        test_compile_commands_extraction,
-        test_cmake_cache_extraction,
+        # CMake link.txt tests
+        test_cmake_link_txt_extraction,
+        test_cmake_link_txt_multiple_targets,
+        test_end_to_end_cmake_link_txt,
+        # Makefile tests
         test_makefile_extraction,
         test_makefile_multiline,
-        test_end_to_end_with_compile_commands,
-        test_end_to_end_with_cmake_cache,
         test_nonexistent_build_dir,
         test_deduplication,
         test_cmake_fallback_to_makefile,
@@ -546,7 +541,7 @@ def main():
         test_variable_resolution_unresolved,
         test_makefile_variable_extraction,
         test_makefile_extraction_with_variables,
-        # New tests for _make_paths_relative
+        # Path relative and library validation tests
         test_make_paths_relative_converts_project_paths,
         test_make_paths_relative_filters_system_paths,
         test_make_paths_relative_filters_nonexistent_libs,
