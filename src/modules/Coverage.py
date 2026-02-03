@@ -62,7 +62,7 @@ class LibCoverage:
         self._root_dir = os.path.abspath(lib_path)
         self.api_sizes = {}
         self._fn_sizes = {}
-        self.gcov_files = []  # Store all generated .gcov files
+        self.gcov_files = []
         self._has_cxxfilt = shutil.which("c++filt") is not None
         if not self._has_cxxfilt:
             logging.warning("c++filt not found - C++ mangled names will not be demangled")
@@ -215,53 +215,66 @@ class LibCoverage:
                     gcno_files.append(os.path.join(root, file))
         return gcno_files
 
-    def _extract_function_name(self, name: str) -> str:
+    def _extract_function_name(self, name: str) -> tuple[str, str]:
         """
-        Extract just the function/method name from a potentially demangled C++ name.
+        Extract both qualified and simple function/method names from a potentially demangled C++ name.
 
         This method is backwards compatible with C code:
         - C functions pass through unchanged (no ::, no mangling)
-        - C++ demangled names are simplified to just the method name
+        - C++ demangled names are split into qualified and simple forms
 
         Examples:
-            C:   'my_function' -> 'my_function' (unchanged)
-            C:   'SDL_Init' -> 'SDL_Init' (unchanged)
-            C++: 'lok::Document::saveAs(char const*, char const*)' -> 'saveAs'
-            C++: 'namespace::Class::method()' -> 'method'
-            C++: 'std::vector<int>::push_back(int)' -> 'push_back'
-            C++: 'operator<<(...)' -> 'operator<<'
+            C:   'my_function' -> ('my_function', 'my_function')
+            C:   'SDL_Init' -> ('SDL_Init', 'SDL_Init')
+            C++: 'lok::Document::saveAs(char const*, char const*)' -> ('lok::Document::saveAs', 'saveAs')
+            C++: 'namespace::Class::method()' -> ('namespace::Class::method', 'method')
+            C++: 'std::vector<int>::push_back(int)' -> ('std::vector::push_back', 'push_back')
 
         Args:
             name (str): Function name (C) or demangled C++ function name
 
         Returns:
-            str: Just the function/method name without namespace, class, or parameters
+            tuple[str, str]: (qualified_name, simple_name)
+                qualified_name: Full namespace::Class::method without parameters
+                simple_name: Just the method name without namespace, class, or parameters
         """
-        # For plain C functions without any special characters, return as-is
+        # For plain C functions without any special characters, return as-is for both
         # This ensures backwards compatibility with C code
         if '::' not in name and '(' not in name and '<' not in name:
-            return name
+            return (name, name)
 
-        # Remove template parameters first (e.g., std::vector<int>::push_back)
-        # Simple approach: remove content between < and >
         clean_name = re.sub(r'<[^>]*>', '', name)
 
-        # Remove function parameters (everything from first '(' onwards)
-        if '(' in clean_name:
-            clean_name = clean_name.split('(')[0]
+        # Find the last occurrence of '(' to separate function name from parameters
+        # This handles cases like "(anonymous namespace)::function(params)"
+        last_paren = clean_name.rfind('(')
+
+        if last_paren != -1:
+            # Everything before the last '(' is the qualified name
+            qualified_name = clean_name[:last_paren].strip()
+        else:
+            qualified_name = clean_name.strip()
 
         # Handle operator overloads (keep the operator part)
-        if 'operator' in clean_name:
+        if 'operator' in qualified_name:
             # Extract operator and its symbol
-            match = re.search(r'(operator\S+)', clean_name)
+            match = re.search(r'(operator\S+)', qualified_name)
             if match:
-                return match.group(1)
+                operator_name = match.group(1)
+                # For qualified, keep full path to operator
+                return (qualified_name, operator_name)
 
-        # Get the last component after :: (the actual function/method name)
-        if '::' in clean_name:
-            return clean_name.split('::')[-1]
+        # Get the last component after :: for simple name
+        simple_name = qualified_name
+        if '::' in simple_name:
+            simple_name = simple_name.split('::')[-1]
 
-        return clean_name
+        # Safety check: never return empty simple name
+        if not simple_name:
+            # Fallback to qualified name or original input
+            simple_name = qualified_name if qualified_name else name.split('(')[0] if '(' in name else name
+
+        return (qualified_name, simple_name)
 
     def demangle_cxx_names(self, text: str) -> str:
         """
@@ -301,12 +314,11 @@ class LibCoverage:
             # Process each line and simplify demangled names to just function names
             output_lines = []
             for line in result.stdout.splitlines():
-                # Look for function name patterns in gcov output
-                # gcov outputs lines like: "Function 'mangled_name'"
                 if line.startswith("Function '") and line.endswith("'"):
                     # Extract the demangled name
                     demangled = line[10:-1]  # Remove "Function '" and trailing "'"
-                    simple_name = self._extract_function_name(demangled)
+                    qualified_name, simple_name = self._extract_function_name(demangled)
+                    # For gcov matching, use simple_name (backward compatible)
                     output_lines.append(f"Function '{simple_name}'")
                 else:
                     output_lines.append(line)
@@ -370,7 +382,7 @@ class LibCoverage:
 
             # DEBUG: Show what happened
             logging.debug(f"DEBUG: gcov return code: {p.returncode}")
-            logging.debug(f"DEBUG: gcov stdout: {p.stdout[:500]}")  # First 500 chars
+            logging.debug(f"DEBUG: gcov stdout: {p.stdout[:500]}")
             if p.stderr:
                 logging.debug(f"DEBUG: gcov stderr: {p.stderr}")
 
