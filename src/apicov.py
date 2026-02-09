@@ -303,16 +303,43 @@ def main():
     with open(api_file, "w") as fh:
         json.dump(json_data, fh, indent=2)
 
-    # Build list of simple API names for Coverage module (backward compatible)
-    # Coverage.py uses simple names for gcov matching
-    all_apis = []
+    def normalize_signature(sig: str) -> str:
+        """Normalize C++ signature for consistent matching.
+
+        Converts "char const*" to "const char*" format and removes extra spaces.
+        This ensures consistent matching between header-extracted signatures
+        and gcov demangled names.
+        """
+        import re
+        # "char const*" -> "const char*"
+        sig = re.sub(r'(\w+)\s+const\s*([*&])', r'const \1\2', sig)
+        # Remove spaces around * and &
+        sig = re.sub(r'\s*([*&])\s*', r'\1', sig)
+        return sig
+
+    # Build list of API names for Coverage module
+    # For C++ overloaded functions, use full_name (qualified + signature) to uniquely identify
+    # For C functions (no signature), use the simple name
+    all_apis = []  # Full names for coverage lookup
+    simple_api_names = []  # Simple names for Doxygen documentation lookup
     for file, apis in lib_exports.apis.items():
         for api in apis:
             # Handle both old format (string) and new format (dict)
             if isinstance(api, dict):
-                all_apis.append(api["simple"])
+                qualified_name = api["qualified"]
+                simple_name = api["simple"]
+                signature = api.get("signature", "")
+                # Normalize signature for consistent matching with gcov output
+                if signature:
+                    signature = normalize_signature(signature)
+                # Build full_name for unique identification of overloaded functions
+                full_name = qualified_name + signature if signature else qualified_name
+                all_apis.append(full_name)
+                simple_api_names.append(simple_name)
             else:
+                # Backward compatibility: old format was just a string (C functions)
                 all_apis.append(api)
+                simple_api_names.append(api)
     entry_cov = LibCoverage(all_apis, project_dir)
     logging.debug("DEBUG: Running gcov to identify API sizes and coverage")
     entry_cov.run_gcov_on_gcno_files()
@@ -322,7 +349,8 @@ def main():
         logging.info("Doxygen path provided, generating API documentation")
         doxygen_path = os.path.abspath(os.path.expanduser(args.doxygen_path))
         doc_gen = DocGen(doxygen_path, xml=args.xml)
-        apidoc = doc_gen.generate_apidoc(all_apis)
+        # Use simple_api_names for Doxygen - it only stores simple function names
+        apidoc = doc_gen.generate_apidoc(simple_api_names)
     else:
         logging.info("No Doxygen path provided, skipping API documentation generation")
         apidoc = None
@@ -338,32 +366,39 @@ def main():
                 qualified_name = api["qualified"]
                 simple_name = api["simple"]
                 signature = api.get("signature", "")
+                # Normalize signature for consistent matching with gcov output
+                if signature:
+                    signature = normalize_signature(signature)
             else:
                 # Backward compatibility: old format was just a string
                 qualified_name = api
                 simple_name = api
                 signature = ""
 
-            # Use qualified name as the key in the output JSON
-            # This allows distinguishing between methods with same name in different classes
-            json_data[file][qualified_name] = {
+            # Build full_name for coverage lookup (matches what LibCoverage uses)
+            full_name = qualified_name + signature if signature else qualified_name
+
+            # Use full_name as the key in the output JSON
+            # This allows distinguishing between overloaded functions with same qualified name
+            # e.g., Json::PathArgument::PathArgument(char const*) vs PathArgument(unsigned int)
+            json_data[file][full_name] = {
                 "simple_name": simple_name,  # Include simple name for reference
                 "signature": signature,  # Include signature
                 "full_size": 0,
                 "covered_lines": 0
             }
 
-            # Coverage data is keyed by simple name (from LibCoverage)
-            if simple_name in entry_cov.api_sizes:
-                json_data[file][qualified_name]["full_size"] = entry_cov.api_sizes[simple_name]
-                json_data[file][qualified_name]["covered_lines"] = entry_cov.api_coverage[simple_name]
+            # Coverage data is keyed by full_name (qualified + signature)
+            if full_name in entry_cov.api_sizes:
+                json_data[file][full_name]["full_size"] = entry_cov.api_sizes[full_name]
+                json_data[file][full_name]["covered_lines"] = entry_cov.api_coverage[full_name]
             else:
-                logging.error("ERROR: Failed to find size for API: %s", simple_name)
-                no_cov_apis.append(simple_name)
+                logging.error("ERROR: Failed to find size for API: %s", full_name)
+                no_cov_apis.append(full_name)
 
-            # Documentation is also keyed by simple name
+            # Documentation is keyed by simple name (Doxygen uses simple names)
             if apidoc and simple_name in apidoc:
-                json_data[file][qualified_name]["apidoc"] = apidoc[simple_name]
+                json_data[file][full_name]["apidoc"] = apidoc[simple_name]
             else:
                 logging.debug("DEBUG: Failed to find documentation for API: %s", simple_name)
                 no_doc_apis.append(simple_name)

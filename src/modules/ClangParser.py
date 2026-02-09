@@ -143,19 +143,25 @@ class ClangParser:
         if cursor.kind == CursorKind.FUNCTION_DECL:
             api_info = self._extract_function_info(cursor, namespace_stack, target_file)
             if api_info and api_info.is_public:
-                apis[api_info.qualified_name] = api_info
+                # Use full name with signature as key to support overloaded functions
+                full_key = api_info.qualified_name + (api_info.signature or "")
+                apis[full_key] = api_info
 
         # Extract method declarations
         elif cursor.kind == CursorKind.CXX_METHOD:
             api_info = self._extract_method_info(cursor, namespace_stack, target_file)
             if api_info and api_info.is_public:
-                apis[api_info.qualified_name] = api_info
+                # Use full name with signature as key to support overloaded methods
+                full_key = api_info.qualified_name + (api_info.signature or "")
+                apis[full_key] = api_info
 
         # Extract constructors
         elif cursor.kind == CursorKind.CONSTRUCTOR:
             api_info = self._extract_constructor_info(cursor, namespace_stack, target_file)
             if api_info and api_info.is_public:
-                apis[api_info.qualified_name] = api_info
+                # Use full name with signature as key to support overloaded constructors
+                full_key = api_info.qualified_name + (api_info.signature or "")
+                apis[full_key] = api_info
 
         # Recurse into other children
         for child in cursor.get_children():
