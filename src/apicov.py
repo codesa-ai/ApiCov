@@ -311,8 +311,12 @@ def main():
         and gcov demangled names.
         """
         import re
-        # "char const*" -> "const char*"
-        sig = re.sub(r'(\w+)\s+const\s*([*&])', r'const \1\2', sig)
+        # "char const*" -> "const char*", handles namespaced/multi-word types
+        sig = re.sub(
+            r'([A-Za-z_][\w:<>]*(?:\s+[A-Za-z_][\w:<>]*)*)\s+const\s*([*&])',
+            r'const \1\2',
+            sig,
+        )
         # Remove spaces around * and &
         sig = re.sub(r'\s*([*&])\s*', r'\1', sig)
         return sig
@@ -378,9 +382,8 @@ def main():
             full_name = qualified_name + signature if signature else qualified_name
 
             json_data[file][full_name] = {
-                "name": qualified_name,
+                "name": full_name,
                 "simple_name": simple_name,
-                "signature": signature,
                 "full_size": 0,
                 "covered_lines": 0
             }
