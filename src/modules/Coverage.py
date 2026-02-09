@@ -1,3 +1,4 @@
+import math
 import os
 import re
 import subprocess
@@ -83,8 +84,18 @@ class LibCoverage:
                    of executed lines and total_lines is the total number of lines
         """
         logging.debug("DEBUG: Processing function: %s", fn)
-        cmd = ["grep", "-A1", "-rw", fn, "--include=*.gcov_log", self._root_dir]
+        # Use -F for fixed string matching (handles special chars like * in signatures)
+        cmd = ["grep", "-A1", "-rF", fn, "--include=*.gcov_log", self._root_dir]
         results = subprocess.run(cmd, capture_output=True, text=True)
+
+        # If exact match fails, try searching by qualified name only (before signature)
+        # This handles cases where gcov uses different signature format (e.g., namespace-qualified param types)
+        if results.returncode != 0 and '(' in fn:
+            qualified_name = fn.split('(')[0]
+            logging.debug("DEBUG: Exact match failed, trying qualified name: %s", qualified_name)
+            cmd = ["grep", "-A1", "-rF", qualified_name, "--include=*.gcov_log", self._root_dir]
+            results = subprocess.run(cmd, capture_output=True, text=True)
+
         if results.returncode != 0:
             # logging.warning("Error - grep failed for function: %s", fn)
             return 0, 0
@@ -144,8 +155,18 @@ class LibCoverage:
         Args:
             api (str): API function name to calculate coverage for
         """
-        cmd = ["grep", "-A1", "-rw", api, "--include=*.gcov_log", self._root_dir]
+        # Use -F for fixed string matching (handles special chars like * in signatures)
+        cmd = ["grep", "-A1", "-rF", api, "--include=*.gcov_log", self._root_dir]
         results = subprocess.run(cmd, capture_output=True, text=True)
+
+        # If exact match fails, try searching by qualified name only (before signature)
+        # This handles cases where gcov uses different signature format (e.g., namespace-qualified param types)
+        if results.returncode != 0 and '(' in api:
+            qualified_name = api.split('(')[0]
+            logging.debug("DEBUG: Exact match failed for %s, trying qualified name: %s", api, qualified_name)
+            cmd = ["grep", "-A1", "-rF", qualified_name, "--include=*.gcov_log", self._root_dir]
+            results = subprocess.run(cmd, capture_output=True, text=True)
+
         for line in results.stdout.split("\n"):
             if "Cannot" in line:
                 continue
@@ -155,7 +176,8 @@ class LibCoverage:
                 size = int(t.split("of")[-1].strip())
                 # logging.debug("Coverage string: %s", coverage.strip("%"))
                 float_cov = float(coverage.strip("%"))
-                # logging.debug("Float value: %r", float_cov)
+                if math.isnan(float_cov):
+                    float_cov = 0.0
                 if float_cov > 100.00:
                     logging.debug("DEBUG: Coverage greater than 100%")
                     logging.debug("DEBUG: %s", results.stdout)
@@ -215,35 +237,45 @@ class LibCoverage:
                     gcno_files.append(os.path.join(root, file))
         return gcno_files
 
-    def _extract_function_name(self, name: str) -> tuple[str, str]:
+    def _extract_function_name(self, name: str) -> tuple[str, str, str]:
         """
-        Extract both qualified and simple function/method names from a potentially demangled C++ name.
+        Extract qualified name, simple name, and full name with signature from a potentially demangled C++ name.
 
         This method is backwards compatible with C code:
         - C functions pass through unchanged (no ::, no mangling)
-        - C++ demangled names are split into qualified and simple forms
+        - C++ demangled names are split into qualified, simple, and full forms
 
         Examples:
-            C:   'my_function' -> ('my_function', 'my_function')
-            C:   'SDL_Init' -> ('SDL_Init', 'SDL_Init')
-            C++: 'lok::Document::saveAs(char const*, char const*)' -> ('lok::Document::saveAs', 'saveAs')
-            C++: 'namespace::Class::method()' -> ('namespace::Class::method', 'method')
-            C++: 'std::vector<int>::push_back(int)' -> ('std::vector::push_back', 'push_back')
+            C:   'my_function' -> ('my_function', 'my_function', 'my_function')
+            C:   'SDL_Init' -> ('SDL_Init', 'SDL_Init', 'SDL_Init')
+            C++: 'lok::Document::saveAs(char const*)' -> ('lok::Document::saveAs', 'saveAs', 'lok::Document::saveAs(char const*)')
+            C++: 'Json::PathArgument::PathArgument(char const*)' -> ('Json::PathArgument::PathArgument', 'PathArgument', 'Json::PathArgument::PathArgument(char const*)')
+            C++: 'Json::PathArgument::PathArgument(unsigned int)' -> ('Json::PathArgument::PathArgument', 'PathArgument', 'Json::PathArgument::PathArgument(unsigned int)')
 
         Args:
             name (str): Function name (C) or demangled C++ function name
 
         Returns:
-            tuple[str, str]: (qualified_name, simple_name)
+            tuple[str, str, str]: (qualified_name, simple_name, full_name_with_signature)
                 qualified_name: Full namespace::Class::method without parameters
                 simple_name: Just the method name without namespace, class, or parameters
+                full_name_with_signature: Full name including signature for unique identification
         """
-        # For plain C functions without any special characters, return as-is for both
+        # For plain C functions without any special characters, return as-is for all three
         # This ensures backwards compatibility with C code
         if '::' not in name and '(' not in name and '<' not in name:
-            return (name, name)
+            return (name, name, name)
 
-        clean_name = re.sub(r'<[^>]*>', '', name)
+        # Keep the full name with signature (but strip templates)
+        full_name_with_signature = re.sub(r'<[^>]*>', '', name).strip()
+
+        # Normalize signature format for consistent matching between header-extracted signatures and gcov demangled names:
+        # 1. "char const*" -> "const char*"
+        full_name_with_signature = re.sub(r'(\w+)\s+const\s*([*&])', r'const \1\2', full_name_with_signature)
+        # Also normalize spacing around pointers/references
+        full_name_with_signature = re.sub(r'\s*([*&])\s*', r'\1', full_name_with_signature)
+
+        clean_name = full_name_with_signature
 
         # Find the last occurrence of '(' to separate function name from parameters
         # This handles cases like "(anonymous namespace)::function(params)"
@@ -262,7 +294,7 @@ class LibCoverage:
             if match:
                 operator_name = match.group(1)
                 # For qualified, keep full path to operator
-                return (qualified_name, operator_name)
+                return (qualified_name, operator_name, full_name_with_signature)
 
         # Get the last component after :: for simple name
         simple_name = qualified_name
@@ -274,7 +306,7 @@ class LibCoverage:
             # Fallback to qualified name or original input
             simple_name = qualified_name if qualified_name else name.split('(')[0] if '(' in name else name
 
-        return (qualified_name, simple_name)
+        return (qualified_name, simple_name, full_name_with_signature)
 
     def demangle_cxx_names(self, text: str) -> str:
         """
@@ -300,8 +332,12 @@ class LibCoverage:
             return text
 
         try:
+            # Use -n (no-strip-underscore) flag for cross-platform compatibility.
+            # macOS prepends underscores to symbols; without -n, c++filt may strip
+            # the leading underscore from _Z... mangled names and fail to demangle.
+            # On Linux x86_64, -n is a no-op since no extra underscores are added.
             result = subprocess.run(
-                ["c++filt"],
+                ["c++filt", "-n"],
                 input=text,
                 capture_output=True,
                 text=True,
@@ -311,15 +347,19 @@ class LibCoverage:
                 logging.warning("c++filt failed, using original text")
                 return text
 
-            # Process each line and simplify demangled names to just function names
+            # Process each line - preserve full demangled names with signatures
+            # This allows distinguishing overloaded functions like:
+            #   Json::PathArgument::PathArgument(char const*)
+            #   Json::PathArgument::PathArgument(unsigned int)
+            # The full_name_with_signature is used as the key for coverage lookup
             output_lines = []
             for line in result.stdout.splitlines():
                 if line.startswith("Function '") and line.endswith("'"):
                     # Extract the demangled name
                     demangled = line[10:-1]  # Remove "Function '" and trailing "'"
-                    qualified_name, simple_name = self._extract_function_name(demangled)
-                    # For gcov matching, use simple_name (backward compatible)
-                    output_lines.append(f"Function '{simple_name}'")
+                    qualified_name, simple_name, full_name = self._extract_function_name(demangled)
+                    # Use full_name (includes signature) for unique identification of overloads
+                    output_lines.append(f"Function '{full_name}'")
                 else:
                     output_lines.append(line)
 

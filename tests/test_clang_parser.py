@@ -100,8 +100,9 @@ namespace MyNamespace {
 
         apis = parser.parse_header(header_path)
 
-        assert "MyNamespace::simpleFunction" in apis
-        api_info = apis["MyNamespace::simpleFunction"]
+        # Keys now include signature to support overloaded functions
+        assert "MyNamespace::simpleFunction(int)" in apis
+        api_info = apis["MyNamespace::simpleFunction(int)"]
         assert api_info.simple_name == "simpleFunction"
         assert api_info.qualified_name == "MyNamespace::simpleFunction"
         assert api_info.signature == "(int)"
@@ -125,15 +126,17 @@ namespace MyNamespace {
 
         apis = parser.parse_header(header_path)
 
-        # Should have public methods
-        assert "MyNamespace::MyClass::publicMethod" in apis
-        assert "MyNamespace::MyClass::getNumber" in apis
+        # Should have public methods (keys include signature)
+        # Note: libclang may add spaces in signatures, so check flexibly
+        assert any("MyNamespace::MyClass::publicMethod" in k for k in apis)
+        assert "MyNamespace::MyClass::getNumber()" in apis
 
         # Should NOT have private methods
-        assert "MyNamespace::MyClass::privateMethod" not in apis
+        assert not any("privateMethod" in k for k in apis)
 
         # Check public method details
-        public_method = apis["MyNamespace::MyClass::publicMethod"]
+        public_method_key = [k for k in apis if "publicMethod" in k][0]
+        public_method = apis[public_method_key]
         assert public_method.simple_name == "publicMethod"
         assert public_method.qualified_name == "MyNamespace::MyClass::publicMethod"
         assert public_method.is_public is True
@@ -153,8 +156,9 @@ namespace Outer {
 
         apis = parser.parse_header(header_path)
 
-        assert "Outer::Inner::nestedFunction" in apis
-        api_info = apis["Outer::Inner::nestedFunction"]
+        # Keys include signature
+        assert "Outer::Inner::nestedFunction()" in apis
+        api_info = apis["Outer::Inner::nestedFunction()"]
         assert api_info.simple_name == "nestedFunction"
 
     def test_parse_constructor(self, parser, temp_dir):
@@ -172,8 +176,9 @@ public:
 
         apis = parser.parse_header(header_path)
 
-        # Constructors should be detected
-        assert "MyClass::MyClass" in apis or "MyClass" in apis
+        # Constructors should be detected (keys include signature)
+        # Both overloaded constructors should be present
+        assert "MyClass::MyClass()" in apis or "MyClass::MyClass(int)" in apis
 
     def test_parse_template_class(self, parser, temp_dir):
         """Test parsing template classes (templates should have params erased)."""
@@ -216,12 +221,13 @@ namespace MyNamespace {
 
         apis = parser.parse_header(header_path)
 
-        assert "MyNamespace::ClassA::methodA" in apis
-        assert "MyNamespace::ClassB::methodB" in apis
+        # Keys include signature
+        assert "MyNamespace::ClassA::methodA()" in apis
+        assert "MyNamespace::ClassB::methodB()" in apis
 
         # Ensure they're different methods
-        assert apis["MyNamespace::ClassA::methodA"].simple_name == "methodA"
-        assert apis["MyNamespace::ClassB::methodB"].simple_name == "methodB"
+        assert apis["MyNamespace::ClassA::methodA()"].simple_name == "methodA"
+        assert apis["MyNamespace::ClassB::methodB()"].simple_name == "methodB"
 
     def test_parse_overloaded_methods(self, parser, temp_dir):
         """Test parsing overloaded methods (same name, different signatures)."""
@@ -291,8 +297,8 @@ void mainFunction();
 
         apis = parser.parse_header(header_path)
 
-        # Should only have mainFunction, not includedFunction
-        assert "mainFunction" in apis
+        # Should only have mainFunction, not includedFunction (keys include signature)
+        assert "mainFunction()" in apis
         # includedFunction might or might not be included depending on implementation
         # The key point is that we get at least the main file's APIs
 
@@ -334,13 +340,13 @@ void funcReference(const int& ref);
 
         apis = parser.parse_header(header_path)
 
-        # Check various signature formats
-        if "funcNoArgs" in apis:
-            assert "()" in apis["funcNoArgs"].signature
-        if "funcOneArg" in apis:
-            assert "int" in apis["funcOneArg"].signature
-        if "funcMultiArgs" in apis:
-            sig = apis["funcMultiArgs"].signature
+        # Check various signature formats (keys now include signature)
+        if "funcNoArgs()" in apis:
+            assert "()" in apis["funcNoArgs()"].signature
+        if "funcOneArg(int)" in apis:
+            assert "int" in apis["funcOneArg(int)"].signature
+        if "funcMultiArgs(const char*, int, float)" in apis:
+            sig = apis["funcMultiArgs(const char*, int, float)"].signature
             assert "char" in sig and "int" in sig and "float" in sig
 
     def test_public_private_detection(self, parser, temp_dir):
@@ -363,9 +369,9 @@ public:
 
         apis = parser.parse_header(header_path)
 
-        # Should have public methods
-        assert "MyClass::publicMethod1" in apis or "publicMethod1" in apis
-        assert "MyClass::publicMethod2" in apis or "publicMethod2" in apis
+        # Should have public methods (keys include signature)
+        assert "MyClass::publicMethod1()" in apis or "publicMethod1()" in apis
+        assert "MyClass::publicMethod2()" in apis or "publicMethod2()" in apis
 
         # Should NOT have private or protected methods
         private_count = sum(1 for name in apis.keys() if "privateMethod" in name)

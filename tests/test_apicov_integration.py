@@ -107,20 +107,21 @@ namespace MyLib {
                 qualified_name = api["qualified"]
                 simple_name = api["simple"]
                 signature = api.get("signature", "")
+                full_name = qualified_name + signature if signature else qualified_name
 
-                json_data[file][qualified_name] = {
+                json_data[file][full_name] = {
+                    "name": full_name,
                     "simple_name": simple_name,
-                    "signature": signature,
                     "full_size": 0,
                     "covered_lines": 0
                 }
 
         # Verify structure
         for file, api_dict in json_data.items():
-            for qualified_name, api_data in api_dict.items():
+            for api_key, api_data in api_dict.items():
                 # Each API should have these fields
+                assert "name" in api_data
                 assert "simple_name" in api_data
-                assert "signature" in api_data
                 assert "full_size" in api_data
                 assert "covered_lines" in api_data
 
@@ -310,7 +311,6 @@ class TestBackwardCompatibilityHandling:
         api_data = {
             "name": "oldFunction",
             "simple_name": None,
-            "signature": None
         }
 
         # Code should fallback to name
