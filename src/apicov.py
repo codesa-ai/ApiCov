@@ -375,20 +375,16 @@ def main():
                 simple_name = api
                 signature = ""
 
-            # Build full_name for coverage lookup (matches what LibCoverage uses)
             full_name = qualified_name + signature if signature else qualified_name
 
-            # Use full_name as the key in the output JSON
-            # This allows distinguishing between overloaded functions with same qualified name
-            # e.g., Json::PathArgument::PathArgument(char const*) vs PathArgument(unsigned int)
             json_data[file][full_name] = {
-                "simple_name": simple_name,  # Include simple name for reference
-                "signature": signature,  # Include signature
+                "name": qualified_name,
+                "simple_name": simple_name,
+                "signature": signature,
                 "full_size": 0,
                 "covered_lines": 0
             }
 
-            # Coverage data is keyed by full_name (qualified + signature)
             if full_name in entry_cov.api_sizes:
                 json_data[file][full_name]["full_size"] = entry_cov.api_sizes[full_name]
                 json_data[file][full_name]["covered_lines"] = entry_cov.api_coverage[full_name]
@@ -396,7 +392,6 @@ def main():
                 logging.error("ERROR: Failed to find size for API: %s", full_name)
                 no_cov_apis.append(full_name)
 
-            # Documentation is keyed by simple name (Doxygen uses simple names)
             if apidoc and simple_name in apidoc:
                 json_data[file][full_name]["apidoc"] = apidoc[simple_name]
             else:

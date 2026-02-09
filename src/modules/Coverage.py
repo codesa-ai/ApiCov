@@ -1,3 +1,4 @@
+import math
 import os
 import re
 import subprocess
@@ -175,7 +176,8 @@ class LibCoverage:
                 size = int(t.split("of")[-1].strip())
                 # logging.debug("Coverage string: %s", coverage.strip("%"))
                 float_cov = float(coverage.strip("%"))
-                # logging.debug("Float value: %r", float_cov)
+                if math.isnan(float_cov):
+                    float_cov = 0.0
                 if float_cov > 100.00:
                     logging.debug("DEBUG: Coverage greater than 100%")
                     logging.debug("DEBUG: %s", results.stdout)
