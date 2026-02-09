@@ -8,6 +8,8 @@ and extract qualified method names, signatures, and other API information.
 from dataclasses import dataclass
 from typing import Optional
 import logging
+import platform
+import subprocess
 
 try:
     import clang.cindex
@@ -53,12 +55,92 @@ class ClangParser:
             '-std=c++17',
         ]
 
+        # Add system include paths (platform-specific)
+        self.default_args.extend(self._get_system_include_paths())
+
         # Add include directories
         for header_dir in self.header_dirs:
             self.default_args.append(f'-I{header_dir}')
 
         # Add user-specified flags
         self.default_args.extend(self.compile_flags)
+
+    def _get_system_include_paths(self) -> list[str]:
+        """Get system include paths for C++ standard library."""
+        import os
+        import glob
+        paths = []
+
+        if platform.system() == 'Darwin':
+            try:
+                sdk_path = subprocess.check_output(
+                    ['xcrun', '--show-sdk-path'],
+                    stderr=subprocess.DEVNULL
+                ).decode().strip()
+
+                cxx_include = f"{sdk_path}/usr/include/c++/v1"
+                c_include = f"{sdk_path}/usr/include"
+
+                # C++ stdlib must come before clang builtins and C stdlib
+                paths.extend(['-isystem', cxx_include])
+
+                # Find clang's built-in headers (needed for stdarg.h, etc.)
+                clang_builtin_paths = [
+                    '/opt/homebrew/Cellar/llvm/*/lib/clang/*/include',
+                    '/usr/local/Cellar/llvm/*/lib/clang/*/include',
+                ]
+                for pattern in clang_builtin_paths:
+                    matches = sorted(glob.glob(pattern), reverse=True)
+                    for p in matches:
+                        if os.path.isdir(p):
+                            paths.extend(['-isystem', p])
+                            break
+                    if len(paths) > 2:
+                        break
+
+                paths.extend(['-isystem', c_include])
+            except Exception as e:
+                logging.debug(f"Could not get macOS SDK path: {e}")
+
+        elif platform.system() == 'Linux':
+            import struct
+            arch = 'aarch64' if struct.calcsize('P') * 8 == 64 and platform.machine() == 'aarch64' else 'x86_64'
+
+            # Find GCC version and C++ headers
+            gcc_versions = sorted(glob.glob('/usr/include/c++/*'), reverse=True)
+            for gcc_path in gcc_versions:
+                if os.path.isdir(gcc_path):
+                    paths.extend(['-isystem', gcc_path])
+                    # Platform-specific C++ headers
+                    arch_path = f"{gcc_path}/{arch}-linux-gnu"
+                    if os.path.isdir(arch_path):
+                        paths.extend(['-isystem', arch_path])
+                    break
+
+            # GCC internal headers (where cstdlib finds stdlib.h)
+            gcc_internal = sorted(glob.glob(f'/usr/lib/gcc/{arch}-linux-gnu/*/include'), reverse=True)
+            for p in gcc_internal:
+                if os.path.isdir(p):
+                    paths.extend(['-isystem', p])
+                    break
+
+            # Clang's builtin headers
+            clang_builtin_paths = [
+                '/usr/lib/llvm-*/lib/clang/*/include',
+                '/usr/lib/clang/*/include',
+            ]
+            for pattern in clang_builtin_paths:
+                matches = sorted(glob.glob(pattern), reverse=True)
+                for p in matches:
+                    if os.path.isdir(p):
+                        paths.extend(['-isystem', p])
+                        break
+
+            # Standard C include path
+            if os.path.isdir('/usr/include'):
+                paths.extend(['-isystem', '/usr/include'])
+
+        return paths
 
     def parse_header(self, header_path: str) -> dict[str, ApiInfo]:
         """
